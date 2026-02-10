@@ -6,6 +6,7 @@ This guide details how to deploy the Vibe Enterprise Backend and Admin Panel on 
 - A VPS (Ubuntu 20.04/22.04 recommended).
 - Coolify installed on the VPS (see [Coolify Installation](https://coolify.io/docs/installation)).
 - This GitHub repository.
+- **Firebase Service Account**: You need your `service-account.json` file from Firebase Console.
 
 ## Deployment Steps
 
@@ -18,45 +19,58 @@ This guide details how to deploy the Vibe Enterprise Backend and Admin Panel on 
     - Coolify will detect `docker-compose.yml` in the root.
 4.  **Configuration**:
     - **Name**: Vibe Backend
-    - **Domains**: Set your domain (e.g., `https://api.vibe.com`) or use the IP:Port (e.g., `http://<your-ip>:9999`).
+    - **Domains**: Set to `https://vibe.deepverse.cloud`
+    - **Ports Exposes**: `9999`
     - **Environment Variables**:
-        - `JWT_SECRET`: Generate a strong secret.
+        - `JWT_SECRET`: `8f9c234207e14996e9fee98932fc91f693cee40a04f6a199a8d5db95443d2ab63b72c3545e15808b7c9d2bc492b6abfd47c90f6b6c389323fc85ba42eba2b59f`
         - `ADMIN_USER`: Your desired admin username.
         - `ADMIN_PASS`: Your desired admin password.
         - `DATABASE_URL`: `postgresql://vibenetwork:Deep%40Vibe@postgres:5432/vibenetwork`
-5.  **Deploy**: Click "Deploy".
-    - Coolify will build the `api` service and start the `postgres` service.
-    - It will automatically set up the network between them.
+5.  **Firebase Credentials**:
+    - The application requires `server/service-account.json` to function.
+    - **Method A (Volume Mount)**: If you can upload files to your VPS, upload `service-account.json` to a path (e.g., `/var/vibe/service-account.json`) and update `docker-compose.yml` to mount it.
+    - **Method B (Environment Variable - Recommended for Coolify)**:
+        - Convert your `service-account.json` to a single-line string.
+        - Add a new Environment Variable `FIREBASE_SERVICE_ACCOUNT` with the content of the JSON.
+        - *Note: You will need to update `index.js` to support this if not already supported. See "Code Update" below.*
+
+### Code Update for Environment Variable Support
+If you prefer using an environment variable for Firebase, ensure `server/index.js` has the following logic (already included in latest update):
+
+```javascript
+let serviceAccount;
+if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+} else {
+    serviceAccount = require('./service-account.json');
+}
+```
+
+6.  **Deploy**: Click "Deploy".
 
 ### Option 2: Separate Services (Manual)
-If you want to manage the Database separately in Coolify:
-
 1.  **Create PostgreSQL Service**:
-    - In Coolify, Add Resource -> Database -> PostgreSQL.
-    - Name: `vibe-db`.
-    - User: `vibenetwork`
-    - Password: `Deep@Vibe`
-    - DB: `vibenetwork`
-    - Make sure it is public or attached to the same network.
-    - Copy the **Internal Connection String**.
-
+    - User: `vibenetwork`, Password: `Deep@Vibe`, DB: `vibenetwork`.
+    - Internal Connection String: `postgresql://vibenetwork:Deep%40Vibe@postgres:5432/vibenetwork`
 2.  **Create Application Service**:
-    - Add Resource -> Git Repository.
-    - Select this repo.
-    - **Build Pack**: Dockerfile.
-    - **Base Directory**: `/server`.
-    - **Environment Variables**:
-        - `DATABASE_URL`: Paste the Internal Connection String from Step 1.
-        - `PORT`: `9999`.
-    - **Ports Exposes**: `9999`.
-    - **Deploy**.
+    - Build Pack: Dockerfile.
+    - Base Directory: `/server`.
+    - Env Vars: `DATABASE_URL`, `PORT=9999`, `JWT_SECRET=8f9c234207e14996e9fee98932fc91f693cee40a04f6a199a8d5db95443d2ab63b72c3545e15808b7c9d2bc492b6abfd47c90f6b6c389323fc85ba42eba2b59f`, `FIREBASE_SERVICE_ACCOUNT` (JSON content).
+    - Expose Port: `9999`.
 
 ## Verification
 1.  Visit `http://<your-vps-ip>:9999/admin`.
-2.  Login with the `ADMIN_USER` and `ADMIN_PASS` you configured.
-3.  The database tables will be automatically created on first run.
+2.  Login with default or configured credentials.
 
 ## Android App Configuration
-Ensure your Android app points to the deployed URL.
-1.  Update `server_base_url.txt` in the Android project assets or `ApiClient.kt`.
-2.  Rebuild the APK.
+The Android app reads the backend URL from an asset file.
+
+1.  **Locate the file**: `app/src/main/assets/branding/server_base_url.txt`
+2.  **Update the URL**:
+    - Open the file.
+    - Replace the content with your Coolify backend URL (e.g., `http://<your-vps-ip>:9999` or `https://api.vibe.com`).
+    - *Note: Ensure no trailing slashes or whitespace.*
+3.  **Rebuild APK**:
+    - Open the project in Android Studio.
+    - Run `Build > Build Bundle(s) / APK(s) > Build APK(s)`.
+    - The app will now connect to your VPS.

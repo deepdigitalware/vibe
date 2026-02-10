@@ -15,3 +15,6 @@ www/
 android/app/build/
 android/.gradle/
 node_modules
+
+gradle/wrapper/*.zip
+server/service-account.json

@@ -1,33 +1,47 @@
 version: '3.8'
-
 services:
-  api:
-    build: ./server
+  vibe-backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: vibe-backend
+    restart: always
     ports:
       - "9999:9999"
     environment:
       - PORT=9999
       - DATABASE_URL=postgresql://vibenetwork:Deep%40Vibe@postgres:5432/vibenetwork
-      - JWT_SECRET=${JWT_SECRET:-vibe_enterprise_secret}
+      - JWT_SECRET=${JWT_SECRET}
       - ADMIN_USER=${ADMIN_USER:-admin}
       - ADMIN_PASS=${ADMIN_PASS:-password}
+      - FIREBASE_SERVICE_ACCOUNT=${FIREBASE_SERVICE_ACCOUNT}
     depends_on:
       - postgres
-    restart: always
     networks:
       - vibe-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   postgres:
     image: postgres:15-alpine
+    container_name: vibe-postgres
+    restart: always
     environment:
-      - POSTGRES_USER=vibenetwork
-      - POSTGRES_PASSWORD=Deep@Vibe
-      - POSTGRES_DB=vibenetwork
+      POSTGRES_USER: vibenetwork
+      POSTGRES_PASSWORD: Deep@Vibe
+      POSTGRES_DB: vibenetwork
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - vibe-network
-    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vibenetwork"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   vibe-network:
