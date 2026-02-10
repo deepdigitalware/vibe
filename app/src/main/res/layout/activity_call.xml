@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <!-- Remote Video (Full Screen) -->
+    <FrameLayout
+        android:id="@+id/remoteContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#101010">
+        
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Remote Video"
+            android:textColor="#FFFFFF"
+            android:layout_gravity="center" />
+    </FrameLayout>
+
+    <!-- Local Video (PiP / Overlay) -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="120dp"
+        android:layout_height="160dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="100dp"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <FrameLayout
+            android:id="@+id/localContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#202020">
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="You"
+                android:textColor="#FFFFFF"
+                android:layout_gravity="center" />
+        </FrameLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Controls Overlay -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:paddingBottom="24dp"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <TextView
+            android:id="@+id/tvBlockCountdown"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_gradient"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="8dp"
+            android:text="Next charge in: 02:00"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:layout_marginBottom="24dp" />
+
+        <Button
+            android:id="@+id/btnEndCall"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:background="@drawable/ic_video_call"
+            android:backgroundTint="#F44336"
+            app:cornerRadius="30dp" />
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

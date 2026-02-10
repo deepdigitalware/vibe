@@ -1,0 +1,13 @@
+{
+  "dependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
+    "express": "^5.1.0",
+    "serve": "^14.2.4"
+  },
+  "scripts": {
+    "build": "echo 'Building web app...' && mkdir -p dist && cp -r www/* dist/",
+    "start": "serve www"
+  }
+}

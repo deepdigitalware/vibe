@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vibe App</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <header>
+        <h1>Vibe</h1>
+        <p>1:1 video calls with billing</p>
+    </header>
+    
+    <div class="container">
+        <!-- Login Screen -->
+        <div id="loginScreen" class="screen active">
+            <h2>Login</h2>
+            <div id="message" class="message"></div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" id="phone" placeholder="Enter your phone number" required>
+                </div>
+                <button type="submit" class="btn">Send OTP</button>
+            </form>
+            
+            <div id="otpSection" class="hidden">
+                <div class="form-group">
+                    <label for="otp">OTP</label>
+                    <input type="text" id="otp" placeholder="Enter OTP" required>
+                </div>
+                <button onclick="verifyOTP()" class="btn btn-secondary">Verify OTP</button>
+            </div>
+        </div>
+        
+        <!-- Home Screen -->
+        <div id="homeScreen" class="screen">
+            <h2>Welcome to Vibe</h2>
+            <div id="message" class="message"></div>
+            
+            <button id="startCall" class="btn">Start Video Call</button>
+            <button id="openWallet" class="btn btn-secondary">My Wallet</button>
+            
+            <div class="call-timer hidden">
+                <p>Call in progress: <span id="timer">00:00</span></p>
+                <button class="btn btn-danger">End Call</button>
+            </div>
+        </div>
+        
+        <!-- Wallet Screen -->
+        <div id="walletScreen" class="screen">
+            <h2>My Wallet</h2>
+            <div id="message" class="message"></div>
+            
+            <div class="wallet-info">
+                <h3>Current Balance</h3>
+                <div class="balance">₹100.00</div>
+            </div>
+            
+            <button class="btn">Add Money</button>
+            <button class="btn btn-secondary">Transaction History</button>
+            
+            <button onclick="showScreen('home')" class="btn btn-warning">Back to Home</button>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

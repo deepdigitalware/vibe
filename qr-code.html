@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vibe App QR Code</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .qr-container {
+            margin: 30px 0;
+        }
+        .instructions {
+            text-align: left;
+            background-color: #e7f3ff;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px;
+            cursor: pointer;
+            border: none;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Vibe App - QR Code</h1>
+        
+        <div class="qr-container">
+            <h2>Scan to Test Web Version</h2>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=http://192.168.1.5:3000" alt="QR Code">
+        </div>
+        
+        <div class="instructions">
+            <h3>Testing Instructions:</h3>
+            <ol>
+                <li>Scan the QR code above with your mobile device</li>
+                <li>Open the link in your mobile browser</li>
+                <li>Test the Vibe app functionality</li>
+                <li>The web version mimics the Android app experience</li>
+            </ol>
+        </div>
+        
+        <a href="http://192.168.1.5:3000" class="btn" target="_blank">Open Web App</a>
+        
+        <div class="instructions">
+            <h3>To Build Android APK:</h3>
+            <p>To build the actual Android APK with Capacitor, you'll need to:</p>
+            <ol>
+                <li>Install Java JDK 17 or higher</li>
+                <li>Set the JAVA_HOME environment variable</li>
+                <li>Run: <code>npx cap build android</code></li>
+                <li>Or open in Android Studio: <code>npx cap open android</code></li>
+            </ol>
+        </div>
+    </div>
+</body>
+</html>

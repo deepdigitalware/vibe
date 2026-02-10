@@ -1,0 +1,94 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'com.google.gms.google-services'
+
+android {
+    namespace 'com.vibe'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.vibe'
+        minSdk 24
+        targetSdk 33
+        versionCode 1
+        versionName '1.0'
+
+        // Configure your merchant UPI details here
+        buildConfigField "String", "UPI_ID", '"deepversestudio@oksbi"'
+        buildConfigField "String", "PAYEE_NAME", '"Vibe"'
+
+        // Remote config base URL for admin panel APIs
+        buildConfigField "String", "CONFIG_BASE_URL", '"http://10.0.2.2:9999"'
+
+        // TURN server configuration (semicolon separated if multiple)
+        // Note: For production, you MUST use real TURN servers (coturn, Twilio, Xirsys, etc.)
+        // because STUN only works for P2P without symmetric NAT (e.g. WiFi-WiFi often works, 4G often fails).
+        buildConfigField "String", "TURN_URLS", '"turn:your-turn.example.com:3478"'
+        buildConfigField "String", "TURN_USERNAME", '"turn-user"'
+        buildConfigField "String", "TURN_PASSWORD", '"turn-pass"'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+        freeCompilerArgs += "-Xskip-metadata-version-check"
+    }
+
+    buildFeatures {
+        viewBinding true
+        buildConfig true
+    }
+}
+
+dependencies {
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.9.22'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3'
+    implementation 'com.google.android.gms:play-services-ads:24.7.0'
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.9.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.activity:activity-ktx:1.8.1'
+    implementation 'androidx.fragment:fragment-ktx:1.6.2'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.6.2'
+    implementation 'androidx.core:core-splashscreen:1.0.1'
+    implementation 'androidx.navigation:navigation-fragment-ktx:2.7.5'
+    implementation 'androidx.navigation:navigation-ui-ktx:2.7.5'
+
+    // Optional: WebRTC library (community republish to Maven Central)
+    implementation 'com.infobip:google-webrtc:1.0.39079'
+
+    // Firebase (FireStore/Auth) for signaling — will be enabled when configured
+    implementation platform('com.google.firebase:firebase-bom:32.7.2')
+    implementation 'com.google.firebase:firebase-firestore-ktx'
+    implementation 'com.google.firebase:firebase-auth-ktx'
+    
+    // Networking & Socket.IO
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.11.0'
+    implementation ('io.socket:socket.io-client:2.1.0') {
+        exclude group: 'org.json', module: 'json'
+    }
+    
+    // Country Code Picker
+    implementation 'com.hbb20:ccp:2.5.0'
+
+    // Google Sign-In
+    implementation 'com.google.android.gms:play-services-auth:20.7.0'
+}

@@ -1,0 +1,9 @@
+{
+  "appName": "Vibe",
+  "splashLogoUrl": "/uploads/splash-logo.png",
+  "heroTitle": "Vibe Network",
+  "heroSubtitle": "1:1 stranger video chat",
+  "billingRatePerBlockRupees": 10,
+  "blockDurationMinutes": 1,
+  "paymentsProvider": "razorpay"
+}

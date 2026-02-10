@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vibe Network</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --surface-color: #1E1E1E;
+            --primary-color: #7C4DFF;
+            --primary-variant: #651FFF;
+            --secondary-color: #FF4081;
+            --text-primary: #FFFFFF;
+            --text-secondary: #B0B0B0;
+            --success-color: #00E676;
+            --warning-color: #FFEA00;
+            --danger-color: #FF1744;
+            --border-color: #2C2C2C;
+            --sidebar-width: 280px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        /* Login Screen */
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: radial-gradient(circle at center, #2a1a4a 0%, var(--bg-color) 100%);
+        }
+
+        .login-box {
+            background: var(--surface-color);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 420px;
+            border: 1px solid var(--border-color);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .login-header h2 {
+            margin: 10px 0;
+            color: var(--text-primary);
+            font-size: 28px;
+        }
+
+        .login-header i {
+            font-size: 48px;
+            color: var(--primary-color);
+        }
+
+        .form-group { margin-bottom: 24px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px;
+            background: #2C2C2C;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background: #333;
+            box-shadow: 0 0 0 4px rgba(124, 77, 255, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-variant));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(124, 77, 255, 0.3);
+        }
+
+        /* Admin Layout */
+        .admin-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--surface-color);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: 30px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-header h2 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .nav-menu {
+            flex: 1;
+            padding: 20px 15px;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            border-radius: 12px;
+            margin-bottom: 5px;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: rgba(124, 77, 255, 0.15);
+            color: var(--primary-color);
+        }
+
+        .nav-item i { width: 24px; text-align: center; }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 40px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--success-color);
+            background: rgba(0, 230, 118, 0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+
+        .pulse {
+            width: 10px;
+            height: 10px;
+            background: var(--success-color);
+            border-radius: 50%;
+            box-shadow: 0 0 0 rgba(0, 230, 118, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 230, 118, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0); }
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: var(--surface-color);
+            padding: 30px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, transparent, rgba(255,255,255,0.03));
+            border-radius: 0 0 0 100%;
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            background: rgba(124, 77, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--primary-color);
+        }
+
+        .stat-icon.pink { background: rgba(255, 64, 129, 0.1); color: var(--secondary-color); }
+        .stat-icon.green { background: rgba(0, 230, 118, 0.1); color: var(--success-color); }
+        .stat-icon.orange { background: rgba(255, 171, 0, 0.1); color: #FFAB00; }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            margin: 0;
+            color: var(--text-primary);
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .stat-trend {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 13px;
+            margin-top: 15px;
+            color: var(--success-color);
+        }
+
+        .stat-trend.down { color: var(--danger-color); }
+
+        /* Charts */
+        .chart-container {
+            background: var(--surface-color);
+            padding: 30px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 40px;
+            height: 400px;
+        }
+
+        /* Tables */
+        .table-container {
+            background: var(--surface-color);
+            padding: 30px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 20px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        tr:last-child td { border-bottom: none; }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            vertical-align: middle;
+            margin-right: 10px;
+            background: #333;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-badge.active { background: rgba(0, 230, 118, 0.15); color: var(--success-color); }
+        .status-badge.offline { background: rgba(255, 255, 255, 0.1); color: var(--text-secondary); }
+
+        .hidden { display: none !important; }
+
+    </style>
+</head>
+<body>
+
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-box">
+            <div class="login-header">
+                <i class="fas fa-layer-group"></i>
+                <h2>Vibe Enterprise</h2>
+                <p style="color: var(--text-secondary);">Command Center Access</p>
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>Admin ID</label>
+                    <input type="text" id="username" class="form-control" placeholder="Enter admin ID" required>
+                </div>
+                <div class="form-group">
+                    <label>Secure Key</label>
+                    <input type="password" id="password" class="form-control" placeholder="Enter secure key" required>
+                </div>
+                <button type="submit" class="btn">Authenticate</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="adminPanel" class="admin-layout hidden">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-layer-group fa-lg" style="color: var(--primary-color);"></i>
+                <h2>Vibe Network</h2>
+            </div>
+            <nav class="nav-menu">
+                <div class="nav-item active" onclick="switchTab('dashboard', this)">
+                    <i class="fas fa-chart-pie"></i> Real-time Dashboard
+                </div>
+                <div class="nav-item" onclick="switchTab('users', this)">
+                    <i class="fas fa-users"></i> User Management
+                </div>
+                <div class="nav-item" onclick="switchTab('wallet', this)">
+                    <i class="fas fa-wallet"></i> Global Wallet
+                </div>
+                <div class="nav-item" onclick="switchTab('content', this)">
+                    <i class="fas fa-photo-video"></i> Content Moderation
+                </div>
+                <div class="nav-item" onclick="switchTab('system', this)">
+                    <i class="fas fa-server"></i> System Health
+                </div>
+            </nav>
+            <div style="padding: 20px;">
+                <button onclick="logout()" class="btn" style="background: #2C2C2C; border: 1px solid #333;">
+                    <i class="fas fa-sign-out-alt"></i> Terminate Session
+                </button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            
+            <!-- Dashboard -->
+            <section id="dashboard" class="tab-content">
+                <div class="section-header">
+                    <h1 class="section-title">Mission Control</h1>
+                    <div class="live-indicator">
+                        <div class="pulse"></div>
+                        LIVE SYSTEM DATA
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon"><i class="fas fa-users"></i></div>
+                        </div>
+                        <h2 class="stat-value" id="dashUsers">52,447</h2>
+                        <p class="stat-label">Active Users</p>
+                        <div class="stat-trend"><i class="fas fa-arrow-up"></i> +12% this week</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon pink"><i class="fas fa-video"></i></div>
+                        </div>
+                        <h2 class="stat-value">1,247</h2>
+                        <p class="stat-label">Live Video Calls</p>
+                        <div class="stat-trend"><i class="fas fa-arrow-up"></i> +5% current load</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon green"><i class="fas fa-coins"></i></div>
+                        </div>
+                        <h2 class="stat-value" id="dashBalance">₹8.4M</h2>
+                        <p class="stat-label">Total Wallet Float</p>
+                        <div class="stat-trend"><i class="fas fa-arrow-up"></i> +24% vs last month</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon orange"><i class="fas fa-server"></i></div>
+                        </div>
+                        <h2 class="stat-value">99.9%</h2>
+                        <p class="stat-label">Server Uptime</p>
+                        <div class="stat-trend"><i class="fas fa-check"></i> All Systems Normal</div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="trafficChart"></canvas>
+                </div>
+
+                <h2 style="margin-bottom: 20px;">Recent Registrations</h2>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Location</th>
+                                <th>Status</th>
+                                <th>Joined</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentUsersTable">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Global Wallet -->
+            <section id="wallet" class="tab-content hidden">
+                <div class="section-header">
+                    <h1 class="section-title">Global Wallet</h1>
+                    <div class="live-indicator"><div class="pulse"></div> LIVE</div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-header"><div class="stat-icon green"><i class="fas fa-coins"></i></div></div>
+                        <h2 class="stat-value" id="walletTotal">₹0.00</h2>
+                        <p class="stat-label">Total System Float</p>
+                    </div>
+                </div>
+                <h2 style="margin-bottom: 20px;">Recent Transactions (Live)</h2>
+                <div class="table-container">
+                    <table style="width: 100%;">
+                        <thead><tr><th>User</th><th>Type</th><th>Amount</th><th>Status</th></tr></thead>
+                        <tbody id="walletTable"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Content Moderation -->
+            <section id="content" class="tab-content hidden">
+                <div class="section-header">
+                    <h1 class="section-title">Content Moderation</h1>
+                    <button class="btn" style="width:auto;" onclick="loadUploads()"><i class="fas fa-sync"></i> Refresh</button>
+                </div>
+                <div id="moderationGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px;">
+                    <!-- Filled by JS -->
+                </div>
+            </section>
+
+            <!-- System Health -->
+            <section id="system" class="tab-content hidden">
+                <div class="section-header">
+                    <h1 class="section-title">System Status</h1>
+                    <div class="live-indicator"><div class="pulse"></div> MONITORED</div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-header"><div class="stat-icon"><i class="fas fa-clock"></i></div></div>
+                        <h2 class="stat-value" id="sysUptime">0h 0m</h2>
+                        <p class="stat-label">System Uptime</p>
+                    </div>
+                     <div class="stat-card">
+                        <div class="stat-header"><div class="stat-icon pink"><i class="fas fa-memory"></i></div></div>
+                        <h2 class="stat-value" id="sysMemory">0 MB</h2>
+                        <p class="stat-label">Heap Used</p>
+                    </div>
+                     <div class="stat-card">
+                        <div class="stat-header"><div class="stat-icon orange"><i class="fas fa-server"></i></div></div>
+                        <h2 class="stat-value" id="sysPlatform">...</h2>
+                        <p class="stat-label">Platform</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="users" class="tab-content hidden">
+                <div class="section-header">
+                    <h1 class="section-title">User Database</h1>
+                </div>
+                <div class="table-container">
+                    <table style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Profile</th>
+                                <th>Balance</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="allUsersTable"></tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Add Funds Modal -->
+    <div id="addFundsModal" class="hidden" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:1000;display:flex;align-items:center;justify-content:center;">
+        <div style="background:var(--surface-color);padding:30px;border-radius:12px;width:400px;border:1px solid var(--border-color);">
+            <h2 style="margin-top:0;">Add Funds</h2>
+            <p style="color:var(--text-secondary);">Manually update user wallet balance.</p>
+            <input type="hidden" id="fundUserId">
+            <div class="form-group">
+                <label>Amount (₹)</label>
+                <input type="number" id="fundAmount" class="form-control" placeholder="e.g. 100">
+            </div>
+            <div style="display:flex;gap:10px;">
+                <button onclick="submitAddFunds()" class="btn">Add Funds</button>
+                <button onclick="closeAddFundsModal()" class="btn" style="background:#444;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Enterprise Admin Logic
+        const API_URL = ''; // Relative path
+        let token = localStorage.getItem('vibe_admin_token');
+        const socket = io();
+
+        // Socket Real-time Listeners
+        socket.on('connect', () => {
+            console.log('Connected to Command Center Stream');
+        });
+
+        socket.on('admin_update', (data) => {
+            // Toast or Log
+            console.log('Real-time Update:', data);
+            
+            if (data.type === 'balance_updated') {
+                // Refresh Users & Wallet
+                if (!document.getElementById('users').classList.contains('hidden')) loadUsers();
+                if (!document.getElementById('wallet').classList.contains('hidden')) loadWalletData();
+                if (!document.getElementById('dashboard').classList.contains('hidden')) initDashboard();
+                
+                // Add to live feed
+                addWalletLog(data.userId, 'Balance Update', data.newBalance);
+            }
+            
+            if (data.type === 'user_updated' || data.type === 'user_deleted') {
+                loadUsers();
+                initDashboard();
+            }
+        });
+
+        // Check Auth
+        if (token) {
+            showPanel();
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+
+            try {
+                const res = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: u, password: p })
+                });
+                const data = await res.json();
+                if (data.token) {
+                    token = data.token;
+                    localStorage.setItem('vibe_admin_token', token);
+                    showPanel();
+                } else {
+                    alert('Access Denied: Invalid Credentials');
+                }
+            } catch (err) {
+                alert('Connection Error');
+            }
+        });
+
+        function showPanel() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('adminPanel').classList.remove('hidden');
+            initDashboard();
+        }
+
+        function logout() {
+            localStorage.removeItem('vibe_admin_token');
+            location.reload();
+        }
+
+        function switchTab(tabId, el) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+            document.getElementById(tabId)?.classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+            
+            // Load specific data
+            if (tabId === 'users') loadUsers();
+            if (tabId === 'content') loadUploads();
+            if (tabId === 'system') startSystemMonitor();
+            if (tabId === 'wallet') loadWalletData();
+            else stopSystemMonitor();
+        }
+
+        // --- Dashboard ---
+        async function initDashboard() {
+            try {
+                const [analyticsRes, usersRes] = await Promise.all([
+                    fetch('/admin/analytics', { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch('/admin/users', { headers: { 'Authorization': `Bearer ${token}` } })
+                ]);
+
+                if (analyticsRes.ok) {
+                    const analytics = await analyticsRes.json();
+                    document.getElementById('dashUsers').innerText = analytics.totalUsers.toLocaleString();
+                    document.getElementById('dashBalance').innerText = '₹' + analytics.totalBalance.toLocaleString();
+                }
+
+                if (usersRes.ok) {
+                    const users = await usersRes.json();
+                    renderRecentUsers(users);
+                }
+            } catch (e) { console.error(e); }
+
+            // Chart
+            if (!window.trafficChart) {
+                const ctx = document.getElementById('trafficChart').getContext('2d');
+                window.trafficChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
+                        datasets: [{
+                            label: 'Active Users (Real-time)',
+                            data: [120, 80, 150, 450, 520, 480, 300],
+                            borderColor: '#7C4DFF',
+                            backgroundColor: 'rgba(124, 77, 255, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { labels: { color: '#fff' } } },
+                        scales: {
+                            y: { grid: { color: '#2C2C2C' }, ticks: { color: '#B0B0B0' } },
+                            x: { grid: { color: '#2C2C2C' }, ticks: { color: '#B0B0B0' } }
+                        }
+                    }
+                });
+            }
+        }
+
+        function renderRecentUsers(users) {
+            const recent = users.slice(-5).reverse();
+            document.getElementById('recentUsersTable').innerHTML = recent.map(u => `
+                <tr>
+                    <td>
+                        <div style="display:flex; align-items:center;">
+                            <div class="user-avatar" style="background:${stringToColor(u.name || u.uid)}; display:flex; align-items:center; justify-content:center;">
+                                ${(u.name || 'U').charAt(0).toUpperCase()}
+                            </div>
+                            <span style="margin-left:10px;">${u.name || 'User ' + u.uid.substr(0,6)}</span>
+                        </div>
+                    </td>
+                    <td>${u.location || 'Unknown'}</td>
+                    <td><span class="status-badge active">Active</span></td>
+                    <td>${new Date(u.createdAt || Date.now()).toLocaleDateString()}</td>
+                </tr>
+            `).join('');
+        }
+
+        // --- Users ---
+        async function loadUsers() {
+            try {
+                const res = await fetch('/admin/users', { headers: { 'Authorization': `Bearer ${token}` } });
+                const users = await res.json();
+                document.getElementById('allUsersTable').innerHTML = users.map(u => `
+                    <tr>
+                        <td>#${u.uid.substr(0, 8)}...</td>
+                        <td>
+                            <div style="display:flex; align-items:center;">
+                                 <div class="user-avatar" style="background:${stringToColor(u.name || u.uid)}; display:flex; align-items:center; justify-content:center;">
+                                    ${(u.name || 'U').charAt(0).toUpperCase()}
+                                </div>
+                                <span style="margin-left:10px;">${u.name || 'User ' + u.uid.substr(0,6)}</span>
+                            </div>
+                        </td>
+                        <td>₹${(u.balance || 0).toLocaleString()}</td>
+                        <td><span class="status-badge active">Active</span></td>
+                        <td>
+                            <button class="btn btn-sm" style="width:auto; padding: 5px 10px; font-size: 12px; margin-right:5px; background:var(--success-color);" onclick="openAddFundsModal('${u.uid}')">Wallet</button>
+                            <button class="btn btn-sm" style="width:auto; padding: 5px 10px; font-size: 12px; background:var(--danger-color);" onclick="deleteUser('${u.uid}')">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) {}
+        }
+
+        // --- Wallet ---
+        async function loadWalletData() {
+            try {
+                const res = await fetch('/admin/analytics', { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                document.getElementById('walletTotal').innerText = '₹' + data.totalBalance.toLocaleString();
+            } catch(e){}
+        }
+
+        function addWalletLog(uid, type, bal) {
+             const tbody = document.getElementById('walletTable');
+             const tr = document.createElement('tr');
+             tr.innerHTML = `<td>${uid.substr(0,8)}...</td><td>${type}</td><td>₹${bal}</td><td><span class="status-badge active">Success</span></td>`;
+             tbody.prepend(tr);
+             if(tbody.children.length > 10) tbody.lastChild.remove();
+        }
+
+        // --- Content Moderation ---
+        async function loadUploads() {
+            try {
+                const res = await fetch('/admin/uploads', { headers: { 'Authorization': `Bearer ${token}` } });
+                const files = await res.json();
+                document.getElementById('moderationGrid').innerHTML = files.map(f => `
+                    <div style="position:relative; border-radius:8px; overflow:hidden; aspect-ratio:1;">
+                        <img src="${f.url}" style="width:100%; height:100%; object-fit:cover;">
+                        <div style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.7); padding:10px; display:flex; justify-content:space-between;">
+                            <small>${new Date(f.date).toLocaleDateString()}</small>
+                            <button style="background:red; border:none; color:white; cursor:pointer;" onclick="deleteUpload('${f.filename}')"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch(e) {}
+        }
+
+        async function deleteUpload(filename) {
+            // Implement delete endpoint if needed, for now just remove from UI
+            if(confirm('Delete file?')) {
+                // Mock delete
+                alert('File deleted (mock)');
+                loadUploads();
+            }
+        }
+
+        // --- System Health ---
+        let systemInterval;
+        function startSystemMonitor() {
+            loadSystem();
+            systemInterval = setInterval(loadSystem, 5000);
+        }
+        function stopSystemMonitor() {
+            if (systemInterval) clearInterval(systemInterval);
+        }
+
+        async function loadSystem() {
+            try {
+                const res = await fetch('/admin/system', { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                document.getElementById('sysUptime').innerText = Math.floor(data.uptime / 60) + 'm ' + Math.floor(data.uptime % 60) + 's';
+                document.getElementById('sysMemory').innerText = Math.round(data.memory.heapUsed / 1024 / 1024) + ' MB';
+                document.getElementById('sysPlatform').innerText = data.platform;
+            } catch(e) {}
+        }
+
+        // --- Utils ---
+        function stringToColor(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+            return '#' + '00000'.substring(0, 6 - c.length) + c;
+        }
+
+        async function deleteUser(uid) {
+            if(!confirm('Are you sure?')) return;
+            try {
+                await fetch('/admin/users/' + uid, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                loadUsers();
+            } catch(e) { alert('Failed to delete'); }
+        }
+
+        function openAddFundsModal(uid) {
+            document.getElementById('fundUserId').value = uid;
+            document.getElementById('fundAmount').value = '';
+            document.getElementById('addFundsModal').classList.remove('hidden');
+        }
+
+        function closeAddFundsModal() {
+            document.getElementById('addFundsModal').classList.add('hidden');
+        }
+
+        async function submitAddFunds() {
+            const uid = document.getElementById('fundUserId').value;
+            const amount = document.getElementById('fundAmount').value;
+            if (!uid || !amount) return;
+
+            try {
+                const res = await fetch('/wallet/add', {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ userId: uid, amount: amount })
+                });
+                
+                if (res.ok) {
+                    closeAddFundsModal();
+                    alert('Funds added successfully!');
+                    loadUsers(); 
+                } else {
+                    alert('Failed to add funds');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Error connecting to server');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "960325915240",
+    "firebase_url": "https://vibenetwork-default-rtdb.firebaseio.com",
+    "project_id": "vibenetwork",
+    "storage_bucket": "vibenetwork.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:960325915240:android:237e75eeae2ff26eeaa1dd",
+        "android_client_info": {
+          "package_name": "com.vibe"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "960325915240-tg8ff5udgj5acpetj3gr4k82389rdreq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCWqdFvkTRLNJL0ZLeWFfBWGcE5e2ub3vY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "960325915240-4if6ch8nlmtgb749g5s9fqd19a8f73ns.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

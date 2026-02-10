@@ -1,0 +1,17 @@
+.gradle/
+.gradle-home/
+.gradle_local/
+build/
+node_modules/
+server/node_modules/
+local.properties
+.idea/
+.vscode/
+*.log
+*.tmp
+*.apk
+dist/
+www/
+android/app/build/
+android/.gradle/
+node_modules

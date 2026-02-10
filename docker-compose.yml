@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  api:
+    build: ./server
+    ports:
+      - "9999:9999"
+    environment:
+      - PORT=9999
+      - DATABASE_URL=postgresql://vibenetwork:Deep%40Vibe@postgres:5432/vibenetwork
+      - JWT_SECRET=${JWT_SECRET:-vibe_enterprise_secret}
+      - ADMIN_USER=${ADMIN_USER:-admin}
+      - ADMIN_PASS=${ADMIN_PASS:-password}
+    depends_on:
+      - postgres
+    restart: always
+    networks:
+      - vibe-network
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=vibenetwork
+      - POSTGRES_PASSWORD=Deep@Vibe
+      - POSTGRES_DB=vibenetwork
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - vibe-network
+    restart: always
+
+networks:
+  vibe-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
