@@ -83,6 +83,17 @@ app.get('/', (req, res, next) => {
     }
 });
 
+// GLOBAL CATCH-ALL (Prevents 404 for unknown routes during debug)
+app.use('*', (req, res) => {
+    console.log(`[404 Handler] Accessed: ${req.originalUrl}`);
+    res.status(200).json({
+        status: 'success',
+        message: 'Vibe Backend is Running (Catch-All)',
+        path: req.originalUrl,
+        timestamp: new Date().toISOString()
+    });
+});
+
 // --- Chat Socket.IO Logic ---
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
