@@ -16,8 +16,8 @@ This guide details how to deploy the Vibe Enterprise Backend and Admin Panel on 
 3.  **Add a Resource** -> **Git Repository** (or **Docker Compose** directly if you prefer).
     - If using Git: Connect this repository.
     - Build Pack: **Docker Compose**.
-    - Coolify will detect `docker-compose.yml` in the root.
-4.  **Configuration**:
+    - Coolify will detect `docker-compose.yaml` in the root.
+20.  **Configuration**:
     - **Name**: Vibe Backend
     - **Domains**: Set to `https://vibe.deepverse.cloud`
     - **Ports Exposes**: `9999`
