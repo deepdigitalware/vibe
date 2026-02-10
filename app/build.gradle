@@ -18,7 +18,7 @@ android {
         buildConfigField "String", "PAYEE_NAME", '"Vibe"'
 
         // Remote config base URL for admin panel APIs
-        buildConfigField "String", "CONFIG_BASE_URL", '"http://10.0.2.2:9999"'
+        buildConfigField "String", "CONFIG_BASE_URL", '"https://vibe.deepverse.cloud"'
 
         // TURN server configuration (semicolon separated if multiple)
         // Note: For production, you MUST use real TURN servers (coturn, Twilio, Xirsys, etc.)
