@@ -64,8 +64,24 @@ initDb();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Health Check Endpoint (Crucial for Docker/Coolify)
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+});
+
+// Static Files
 app.use('/uploads', express.static(UPLOADS_DIR));
 app.use('/', express.static(PUBLIC_DIR));
+
+// Fallback for root if index.html issue occurs
+app.get('/', (req, res, next) => {
+    if (fs.existsSync(path.join(PUBLIC_DIR, 'index.html'))) {
+        res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
+    } else {
+        res.send('Vibe Backend is Running');
+    }
+});
 
 // --- Chat Socket.IO Logic ---
 io.on('connection', (socket) => {
