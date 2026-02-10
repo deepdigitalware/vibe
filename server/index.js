@@ -27,14 +27,28 @@ const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'password';
 
 // Initialize Firebase Admin
+let serviceAccount;
+
 try {
-  const serviceAccount = require('./service-account.json');
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
-  console.log("Firebase Admin initialized successfully");
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  } else {
+    serviceAccount = require('./service-account.json');
+  }
 } catch (error) {
-  console.error("Firebase Admin initialization failed:", error.message);
+  console.warn("Warning: Could not load Firebase credentials. Authentication features may not work.");
+  console.warn("Please set FIREBASE_SERVICE_ACCOUNT environment variable or ensure service-account.json exists.");
+}
+
+if (serviceAccount) {
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+    console.log("Firebase Admin initialized successfully");
+  } catch (error) {
+    console.error("Firebase Admin initialization failed:", error.message);
+  }
 }
 
 // Storage
