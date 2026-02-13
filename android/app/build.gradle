@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.vibe.app"
+    namespace "com.vibe"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.vibe.app"
+        applicationId "com.vibe"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

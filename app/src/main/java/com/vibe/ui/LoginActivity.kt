@@ -41,6 +41,18 @@ import com.vibe.api.LoginAppRequest
 import com.vibe.api.SessionManager
 import retrofit2.awaitResponse
 
+import android.media.MediaPlayer
+import android.net.Uri
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.TextPaint
+import android.text.method.LinkMovementMethod
+import android.text.style.ClickableSpan
+import android.text.style.ForegroundColorSpan
+import android.widget.TextView
+import android.widget.VideoView
+import android.graphics.Color
+
 class LoginActivity : AppCompatActivity() {
     private var auth: FirebaseAuth? = null
     private var verificationId: String? = null
@@ -49,16 +61,16 @@ class LoginActivity : AppCompatActivity() {
 
     // UI Components
     private lateinit var llLoginOptions: LinearLayout
-    private lateinit var llPhoneInput: LinearLayout
     private lateinit var llOtpInput: LinearLayout
     private lateinit var btnGoogleLogin: SignInButton
-    private lateinit var btnPhoneLogin: Button
     private lateinit var btnSendOtp: Button
-    private lateinit var btnCancel: Button
     private lateinit var btnVerifyOtp: Button
+    private lateinit var btnCancelOtp: Button
     private lateinit var etPhone: EditText
     private lateinit var etOtp: EditText
     private lateinit var ccp: CountryCodePicker
+    private lateinit var videoBackground: VideoView
+    private lateinit var tvTerms: TextView
 
     private val googleSignInLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -117,18 +129,92 @@ class LoginActivity : AppCompatActivity() {
 
     private fun initViews() {
         llLoginOptions = findViewById(R.id.llLoginOptions)
-        llPhoneInput = findViewById(R.id.llPhoneInput)
         llOtpInput = findViewById(R.id.llOtpInput)
         btnGoogleLogin = findViewById(R.id.btnGoogleLogin)
-        btnPhoneLogin = findViewById(R.id.btnPhoneLogin)
         btnSendOtp = findViewById(R.id.btnSendOtp)
-        btnCancel = findViewById(R.id.btnCancel)
         btnVerifyOtp = findViewById(R.id.btnVerifyOtp)
+        btnCancelOtp = findViewById(R.id.btnCancelOtp)
         etPhone = findViewById(R.id.etPhone)
         etOtp = findViewById(R.id.etOtp)
         ccp = findViewById(R.id.ccp)
+        videoBackground = findViewById(R.id.videoBackground)
+        tvTerms = findViewById(R.id.tvTerms)
         
         ccp.registerCarrierNumberEditText(etPhone)
+        setupBackgroundVideo()
+        setupTermsAndPrivacy()
+    }
+
+    private fun setupBackgroundVideo() {
+        try {
+            val uri = Uri.parse("android.resource://" + packageName + "/" + R.raw.login_bg)
+            videoBackground.setVideoURI(uri)
+            videoBackground.setOnPreparedListener { mp ->
+                mp.isLooping = true
+                // Mute video if needed
+                mp.setVolume(0f, 0f)
+                
+                // Scale video to cover screen
+                val videoRatio = mp.videoWidth / mp.videoHeight.toFloat()
+                val screenRatio = videoBackground.width / videoBackground.height.toFloat()
+                val scale = videoRatio / screenRatio
+                if (scale >= 1f) {
+                    videoBackground.scaleX = scale
+                } else {
+                    videoBackground.scaleY = 1f / scale
+                }
+            }
+            videoBackground.start()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun setupTermsAndPrivacy() {
+        val fullText = "By continuing, you accept our Terms of Service and Privacy Policy."
+        val spannableString = SpannableString(fullText)
+
+        val termsClick = object : ClickableSpan() {
+            override fun onClick(widget: View) {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://vibe.deepverse.cloud/terms"))
+                startActivity(intent)
+            }
+            override fun updateDrawState(ds: TextPaint) {
+                super.updateDrawState(ds)
+                ds.isUnderlineText = true
+                ds.color = Color.WHITE
+            }
+        }
+
+        val privacyClick = object : ClickableSpan() {
+            override fun onClick(widget: View) {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://vibe.deepverse.cloud/privacy"))
+                startActivity(intent)
+            }
+            override fun updateDrawState(ds: TextPaint) {
+                super.updateDrawState(ds)
+                ds.isUnderlineText = true
+                ds.color = Color.WHITE
+            }
+        }
+
+        val termsStart = fullText.indexOf("Terms of Service")
+        val termsEnd = termsStart + "Terms of Service".length
+        val privacyStart = fullText.indexOf("Privacy Policy")
+        val privacyEnd = privacyStart + "Privacy Policy".length
+
+        spannableString.setSpan(termsClick, termsStart, termsEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        spannableString.setSpan(privacyClick, privacyStart, privacyEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        spannableString.setSpan(ForegroundColorSpan(Color.WHITE), termsStart, termsEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        spannableString.setSpan(ForegroundColorSpan(Color.WHITE), privacyStart, privacyEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+        tvTerms.text = spannableString
+        tvTerms.movementMethod = LinkMovementMethod.getInstance()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        videoBackground.start()
     }
 
     private fun setupListeners() {
@@ -137,11 +223,7 @@ class LoginActivity : AppCompatActivity() {
             googleSignInLauncher.launch(signInIntent)
         }
 
-        btnPhoneLogin.setOnClickListener {
-            showPhoneInput()
-        }
-
-        btnCancel.setOnClickListener {
+        btnCancelOtp.setOnClickListener {
             showLoginOptions()
         }
 
@@ -205,20 +287,12 @@ class LoginActivity : AppCompatActivity() {
 
     private fun showLoginOptions() {
         llLoginOptions.visibility = View.VISIBLE
-        llPhoneInput.visibility = View.GONE
         llOtpInput.visibility = View.GONE
         btnSendOtp.isEnabled = true
     }
 
-    private fun showPhoneInput() {
-        llLoginOptions.visibility = View.GONE
-        llPhoneInput.visibility = View.VISIBLE
-        llOtpInput.visibility = View.GONE
-    }
-
     private fun showOtpInput() {
         llLoginOptions.visibility = View.GONE
-        llPhoneInput.visibility = View.GONE
         llOtpInput.visibility = View.VISIBLE
     }
 

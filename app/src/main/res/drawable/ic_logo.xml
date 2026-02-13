@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <!-- Vibe Logo placeholder - please replace this file with your actual logo.png or .xml -->
+    <path
+        android:fillColor="#8A2BE2"
+        android:pathData="M100,20c44.18,0 80,35.82 80,80s-35.82,80 -80,80s-80,-35.82 -80,-80s35.82,-80 80,-80z"/>
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M70,70l20,60l20,-30l20,30l20,-60l-15,0l-10,35l-15,-25l-15,25l-10,-35z"/>
+</vector>
