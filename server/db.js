@@ -7,8 +7,10 @@ const pool = new Pool({
 });
 
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-  process.exit(-1);
+  console.error('Unexpected error on idle client', err.message);
+  // In production/docker, we might want to log this but not necessarily crash
+  // if the pool can recover. However, pg docs recommend exiting.
+  // We'll log it clearly.
 });
 
 module.exports = {

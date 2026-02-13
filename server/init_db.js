@@ -2,31 +2,38 @@ const db = require('./db');
 const fs = require('fs');
 const path = require('path');
 
-async function initDb() {
-    try {
-        const sql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
-        await db.query(sql);
-        console.log('Database initialized successfully');
-        
-        // Seed initial users if table is empty
-        const userCount = await db.query('SELECT COUNT(*) FROM users');
-        if (parseInt(userCount.rows[0].count) === 0) {
-            console.log('Seeding initial users...');
-            const usersData = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'users.json'), 'utf-8'));
-            for (const uid in usersData) {
-                const user = usersData[uid];
-                await db.query(
-                    'INSERT INTO users (uid, name, username, bio, avatar, balance, created_at, role) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-                    [uid, user.name, user.username, user.bio, user.avatar, user.balance || 0, Date.now(), 'user']
-                );
+async function initDb(retries = 5) {
+    while (retries > 0) {
+        try {
+            const sql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
+            await db.query(sql);
+            console.log('Database initialized successfully');
+            
+            // Seed initial users if table is empty
+            const userCount = await db.query('SELECT COUNT(*) FROM users');
+            if (parseInt(userCount.rows[0].count) === 0) {
+                console.log('Seeding initial users...');
+                const usersData = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'users.json'), 'utf-8'));
+                for (const uid in usersData) {
+                    const user = usersData[uid];
+                    await db.query(
+                        'INSERT INTO users (uid, name, username, bio, avatar, balance, created_at, role) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+                        [uid, user.name, user.username, user.bio, user.avatar, user.balance || 0, Date.now(), 'user']
+                    );
+                }
+                console.log('Users seeded successfully');
             }
-            console.log('Users seeded successfully');
+            break; // Success, exit loop
+        } catch (err) {
+            console.error(`Error initializing database (Retries left: ${retries - 1}):`, err.message);
+            retries -= 1;
+            if (retries === 0) {
+                console.error('Failed to initialize database after multiple attempts.');
+                // Don't exit, let the app run and fail on requests if needed
+            } else {
+                await new Promise(res => setTimeout(res, 5000)); // Wait 5 seconds
+            }
         }
-    } catch (err) {
-        console.error('Error initializing database:', err);
-    } finally {
-        // Don't close pool if used in app, but for standalone script we would.
-        // db.pool.end();
     }
 }
 
