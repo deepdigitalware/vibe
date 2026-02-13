@@ -53,7 +53,11 @@ import android.widget.TextView
 import android.widget.VideoView
 import android.graphics.Color
 
+import com.vibe.util.ScalableVideoView
+import android.util.Log
+
 class LoginActivity : AppCompatActivity() {
+    private val TAG = "LoginActivity"
     private var auth: FirebaseAuth? = null
     private var verificationId: String? = null
     private lateinit var prefs: SharedPreferences
@@ -69,7 +73,7 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var etPhone: EditText
     private lateinit var etOtp: EditText
     private lateinit var ccp: CountryCodePicker
-    private lateinit var videoBackground: VideoView
+    private lateinit var videoBackground: ScalableVideoView
     private lateinit var tvTerms: TextView
 
     private val googleSignInLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -79,7 +83,15 @@ class LoginActivity : AppCompatActivity() {
                 val account = task.getResult(ApiException::class.java)
                 firebaseAuthWithGoogle(account.idToken!!)
             } catch (e: ApiException) {
-                showSnackbar("Google Sign-In failed: ${e.statusCode}")
+                val errorMsg = when (e.statusCode) {
+                    10 -> "Google Sign-In failed: Developer Error (Check SHA-1/Package Name in Firebase)"
+                    7 -> "Google Sign-In failed: Network Error"
+                    12500 -> "Google Sign-In failed: Internal Error"
+                    12501 -> "Google Sign-In cancelled"
+                    else -> "Google Sign-In failed: ${e.statusCode}"
+                }
+                showSnackbar(errorMsg)
+                Log.e(TAG, "Google Sign-In Error: ${e.statusCode}", e)
             }
         }
     }
@@ -91,18 +103,16 @@ class LoginActivity : AppCompatActivity() {
 
         prefs = getSharedPreferences("vibe_prefs", Context.MODE_PRIVATE)
 
-        // Initialize Firebase
-        val firebaseReady = try {
-            if (FirebaseApp.getApps(this).isEmpty()) {
-                FirebaseApp.initializeApp(this)
-            }
-            true
-        } catch (_: Exception) { false }
+        // Firebase is initialized in VibeApplication
+        auth = try {
+            FirebaseAuth.getInstance()
+        } catch (e: Exception) {
+            Log.e(TAG, "FirebaseAuth initialization failed", e)
+            null
+        }
         
-        if (firebaseReady) {
-            auth = FirebaseAuth.getInstance()
-        } else {
-            showSnackbar("Firebase not configured.")
+        if (auth == null) {
+            showSnackbar("Firebase Auth not available. Check google-services.json")
         }
 
         // Configure Google Sign-In
@@ -186,17 +196,14 @@ class LoginActivity : AppCompatActivity() {
             videoBackground.setOnPreparedListener { mp ->
                 mp.isLooping = true
                 mp.setVolume(0f, 0f)
-                
-                val videoRatio = mp.videoWidth / mp.videoHeight.toFloat()
-                val screenRatio = videoBackground.width / videoBackground.height.toFloat()
-                if (screenRatio > 0) {
-                    val scale = videoRatio / screenRatio
-                    if (scale >= 1f) {
-                        videoBackground.scaleX = scale
-                    } else {
-                        videoBackground.scaleY = 1f / scale
-                    }
+                // ScalableVideoView handles the fit/fill automatically in onMeasure
+                videoBackground.setVideoSize(mp.videoWidth, mp.videoHeight)
+            }
+            videoBackground.setOnInfoListener { mp, what, extra ->
+                if (what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
+                    videoBackground.setVideoSize(mp.videoWidth, mp.videoHeight)
                 }
+                false
             }
             videoBackground.start()
         } catch (e: Exception) {
@@ -205,7 +212,7 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun setupTermsAndPrivacy(termsUrl: String? = null, privacyUrl: String? = null) {
-        val fullText = "By continuing, you accept our Terms of Service and Privacy Policy."
+        val fullText = "By continuing, you agree to our Terms of Services\nand Privacy Policy."
         val spannableString = SpannableString(fullText)
 
         val termsClick = object : ClickableSpan() {
@@ -216,7 +223,7 @@ class LoginActivity : AppCompatActivity() {
             }
             override fun updateDrawState(ds: TextPaint) {
                 super.updateDrawState(ds)
-                ds.isUnderlineText = true
+                ds.isUnderlineText = false
                 ds.color = Color.WHITE
             }
         }
@@ -229,20 +236,22 @@ class LoginActivity : AppCompatActivity() {
             }
             override fun updateDrawState(ds: TextPaint) {
                 super.updateDrawState(ds)
-                ds.isUnderlineText = true
+                ds.isUnderlineText = false
                 ds.color = Color.WHITE
             }
         }
 
-        val termsStart = fullText.indexOf("Terms of Service")
-        val termsEnd = termsStart + "Terms of Service".length
+        val termsStart = fullText.indexOf("Terms of Services")
+        val termsEnd = termsStart + "Terms of Services".length
         val privacyStart = fullText.indexOf("Privacy Policy")
         val privacyEnd = privacyStart + "Privacy Policy".length
 
-        spannableString.setSpan(termsClick, termsStart, termsEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        spannableString.setSpan(privacyClick, privacyStart, privacyEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        spannableString.setSpan(ForegroundColorSpan(Color.WHITE), termsStart, termsEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        spannableString.setSpan(ForegroundColorSpan(Color.WHITE), privacyStart, privacyEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        if (termsStart != -1) {
+            spannableString.setSpan(termsClick, termsStart, termsEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+        if (privacyStart != -1) {
+            spannableString.setSpan(privacyClick, privacyStart, privacyEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
 
         tvTerms.text = spannableString
         tvTerms.movementMethod = LinkMovementMethod.getInstance()
@@ -284,8 +293,19 @@ class LoginActivity : AppCompatActivity() {
                 }
 
                 override fun onVerificationFailed(e: FirebaseException) {
-                    showSnackbar("Verification failed: ${e.message}")
+                    Log.e(TAG, "Phone Auth failed: ${e.message}", e)
+                    val msg = when (e) {
+                        is com.google.firebase.auth.FirebaseAuthInvalidCredentialsException -> "Invalid phone number."
+                        is com.google.firebase.FirebaseTooManyRequestsException -> "Too many requests. Try again later."
+                        else -> "Verification failed: ${e.message}"
+                    }
+                    showSnackbar(msg)
                     btnSendOtp.isEnabled = true
+                    
+                    // Specific hint for user/developer
+                    if (e.message?.contains("SHA-1") == true || e.message?.contains("SHA1") == true) {
+                        showSnackbar("Error: SHA-1 not configured in Firebase Console.")
+                    }
                 }
 
                 override fun onCodeSent(verificationId: String, token: PhoneAuthProvider.ForceResendingToken) {

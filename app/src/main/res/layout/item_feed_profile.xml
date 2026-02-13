@@ -17,9 +17,10 @@
         <ImageView
             android:id="@+id/ivProfile"
             android:layout_width="match_parent"
-            android:layout_height="450dp"
+            android:layout_height="0dp"
             android:scaleType="centerCrop"
             android:src="#E0E0E0"
+            app:layout_constraintDimensionRatio="H,3:4"
             app:layout_constraintTop_toTopOf="parent" />
 
         <!-- Online Indicator (Top Left) -->

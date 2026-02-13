@@ -17,17 +17,19 @@
             android:orientation="vertical"
             android:paddingBottom="32dp">
 
-            <FrameLayout
+            <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
-                android:layout_height="200dp">
+                android:layout_height="wrap_content">
 
                 <ImageView
                     android:id="@+id/ivCover"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_height="0dp"
                     android:scaleType="centerCrop"
                     android:src="@drawable/bg_gradient"
-                    android:background="#333333"/>
+                    android:background="#333333"
+                    app:layout_constraintDimensionRatio="H,16:8"
+                    app:layout_constraintTop_toTopOf="parent" />
                 
                 <ImageView
                     android:id="@+id/btnEditCover"
@@ -35,10 +37,11 @@
                     android:layout_height="40dp"
                     android:src="@drawable/ic_camera_simple"
                     android:padding="8dp"
-                    android:layout_gravity="bottom|end"
                     android:layout_margin="16dp"
-                    app:tint="@color/white"/>
-            </FrameLayout>
+                    app:tint="@color/white"
+                    app:layout_constraintBottom_toBottomOf="@id/ivCover"
+                    app:layout_constraintEnd_toEndOf="@id/ivCover" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
