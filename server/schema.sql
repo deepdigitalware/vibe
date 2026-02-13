@@ -45,5 +45,21 @@ INSERT INTO cms (section, data) VALUES
 ('about', '{"title": "About Us", "content": "We connect people through seamless video interactions."}'),
 ('blogs', '[]'),
 ('gallery', '[]'),
-('config', '{"appName": "Vibe", "splashLogoUrl": "", "heroTitle": "Welcome to Vibe", "heroSubtitle": "1:1 video calls with billing", "billingRatePerBlockRupees": 10, "blockDurationMinutes": 2, "paymentsProvider": "mock"}')
+('config', '{"appName": "Vibe", "appVersion": "1.1", "splashLogoUrl": "", "loginBgUrl": "", "heroTitle": "Swipe is Dead. Vibe is Alive.", "heroSubtitle": "Experience the new era of connection", "billingRatePerBlockRupees": 10, "blockDurationMinutes": 2, "paymentsProvider": "razorpay", "termsUrl": "https://vibe.deepverse.cloud/terms", "privacyUrl": "https://vibe.deepverse.cloud/privacy"}')
 ON CONFLICT (section) DO NOTHING;
+
+-- App Configuration table for more robust settings
+CREATE TABLE IF NOT EXISTS app_config (
+    key TEXT PRIMARY KEY,
+    value TEXT,
+    updated_at BIGINT
+);
+
+INSERT INTO app_config (key, value, updated_at) VALUES 
+('app_logo', '', EXTRACT(EPOCH FROM NOW())::BIGINT),
+('login_video', '', EXTRACT(EPOCH FROM NOW())::BIGINT),
+('app_version', '1.1', EXTRACT(EPOCH FROM NOW())::BIGINT),
+('hero_text', 'Swipe is Dead. Vibe is Alive.', EXTRACT(EPOCH FROM NOW())::BIGINT),
+('terms_url', 'https://vibe.deepverse.cloud/terms', EXTRACT(EPOCH FROM NOW())::BIGINT),
+('privacy_url', 'https://vibe.deepverse.cloud/privacy', EXTRACT(EPOCH FROM NOW())::BIGINT)
+ON CONFLICT (key) DO NOTHING;

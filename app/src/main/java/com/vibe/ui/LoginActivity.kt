@@ -115,16 +115,7 @@ class LoginActivity : AppCompatActivity() {
         initViews()
         setupListeners()
         loadAds()
-    }
-
-    private fun loadAds() {
-        try {
-            val adRequest = com.google.android.gms.ads.AdRequest.Builder().build()
-            findViewById<com.google.android.gms.ads.AdView>(R.id.adViewTop).loadAd(adRequest)
-            findViewById<com.google.android.gms.ads.AdView>(R.id.adViewBottom).loadAd(adRequest)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        applyDynamicBranding()
     }
 
     private fun initViews() {
@@ -145,23 +136,66 @@ class LoginActivity : AppCompatActivity() {
         setupTermsAndPrivacy()
     }
 
-    private fun setupBackgroundVideo() {
+    private fun loadAds() {
         try {
-            val uri = Uri.parse("android.resource://" + packageName + "/" + R.raw.login_bg)
+            val adRequest = com.google.android.gms.ads.AdRequest.Builder().build()
+            findViewById<com.google.android.gms.ads.AdView>(R.id.adViewTop)?.loadAd(adRequest)
+            findViewById<com.google.android.gms.ads.AdView>(R.id.adViewBottom)?.loadAd(adRequest)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun applyDynamicBranding() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val config = BrandingManager.fetchConfig(this@LoginActivity)
+            val logoBitmap = BrandingManager.loadLogoBitmap(this@LoginActivity, config?.appLogo)
+            
+            withContext(Dispatchers.Main) {
+                config?.let { cfg ->
+                    // Apply Subtitle/Hero Text
+                    if (!cfg.heroText.isNullOrBlank()) {
+                        findViewById<TextView>(R.id.tvSubtitle)?.text = cfg.heroText
+                    }
+                    
+                    // Apply Logo
+                    logoBitmap?.let {
+                        findViewById<ImageView>(R.id.ivLogo)?.setImageBitmap(it)
+                    }
+
+                    // Apply Video Background if URL provided
+                    if (!cfg.loginVideo.isNullOrBlank()) {
+                        setupBackgroundVideo(cfg.loginVideo)
+                    }
+
+                    // Update Terms/Privacy links
+                    setupTermsAndPrivacy(cfg.termsUrl, cfg.privacyUrl)
+                }
+            }
+        }
+    }
+
+    private fun setupBackgroundVideo(videoUrl: String? = null) {
+        try {
+            val uri = if (videoUrl != null) {
+                Uri.parse(videoUrl)
+            } else {
+                Uri.parse("android.resource://" + packageName + "/" + R.raw.login_bg)
+            }
             videoBackground.setVideoURI(uri)
             videoBackground.setOnPreparedListener { mp ->
                 mp.isLooping = true
-                // Mute video if needed
                 mp.setVolume(0f, 0f)
                 
-                // Scale video to cover screen
                 val videoRatio = mp.videoWidth / mp.videoHeight.toFloat()
                 val screenRatio = videoBackground.width / videoBackground.height.toFloat()
-                val scale = videoRatio / screenRatio
-                if (scale >= 1f) {
-                    videoBackground.scaleX = scale
-                } else {
-                    videoBackground.scaleY = 1f / scale
+                if (screenRatio > 0) {
+                    val scale = videoRatio / screenRatio
+                    if (scale >= 1f) {
+                        videoBackground.scaleX = scale
+                    } else {
+                        videoBackground.scaleY = 1f / scale
+                    }
                 }
             }
             videoBackground.start()
@@ -170,13 +204,14 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupTermsAndPrivacy() {
+    private fun setupTermsAndPrivacy(termsUrl: String? = null, privacyUrl: String? = null) {
         val fullText = "By continuing, you accept our Terms of Service and Privacy Policy."
         val spannableString = SpannableString(fullText)
 
         val termsClick = object : ClickableSpan() {
             override fun onClick(widget: View) {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://vibe.deepverse.cloud/terms"))
+                val url = termsUrl ?: "https://vibe.deepverse.cloud/terms"
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                 startActivity(intent)
             }
             override fun updateDrawState(ds: TextPaint) {
@@ -188,7 +223,8 @@ class LoginActivity : AppCompatActivity() {
 
         val privacyClick = object : ClickableSpan() {
             override fun onClick(widget: View) {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://vibe.deepverse.cloud/privacy"))
+                val url = privacyUrl ?: "https://vibe.deepverse.cloud/privacy"
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                 startActivity(intent)
             }
             override fun updateDrawState(ds: TextPaint) {

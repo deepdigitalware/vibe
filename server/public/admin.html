@@ -408,6 +408,9 @@
                 <div class="nav-item" onclick="switchTab('system', this)">
                     <i class="fas fa-server"></i> System Health
                 </div>
+                <div class="nav-item" onclick="switchTab('branding', this)" data-tab="branding">
+                    <i class="fas fa-palette"></i> App Branding
+                </div>
             </nav>
             <div style="padding: 20px;">
                 <button onclick="logout()" class="btn" style="background: #2C2C2C; border: 1px solid #333;">
@@ -540,6 +543,56 @@
                         <h2 class="stat-value" id="sysPlatform">...</h2>
                         <p class="stat-label">Platform</p>
                     </div>
+                </div>
+            </section>
+
+            <!-- App Branding & Config -->
+            <section id="branding" class="tab-content hidden">
+                <div class="section-header">
+                    <h1 class="section-title">App Branding</h1>
+                    <div class="live-indicator"><div class="pulse"></div> ENTERPRISE</div>
+                </div>
+                
+                <div class="table-container" style="max-width: 800px;">
+                    <form id="brandingForm">
+                        <div class="form-group">
+                            <label>App Name</label>
+                            <input type="text" id="config_app_name" name="app_name" class="form-control" placeholder="Vibe">
+                        </div>
+                        <div class="form-group">
+                            <label>App Version</label>
+                            <input type="text" id="config_app_version" name="app_version" class="form-control" placeholder="1.0.0">
+                        </div>
+                        <div class="form-group">
+                            <label>Hero Text (Login Screen)</label>
+                            <input type="text" id="config_hero_text" name="hero_text" class="form-control" placeholder="Swipe is Dead. Vibe is Alive.">
+                        </div>
+                        <div class="form-group">
+                            <label>App Logo URL</label>
+                            <div style="display:flex; gap:10px;">
+                                <input type="text" id="config_app_logo" name="app_logo" class="form-control" placeholder="https://...">
+                                <input type="file" id="logoUpload" hidden onchange="uploadBrandingFile(this, 'config_app_logo')">
+                                <button type="button" class="btn" style="width:auto;" onclick="document.getElementById('logoUpload').click()"><i class="fas fa-upload"></i></button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Login Background Video URL</label>
+                            <div style="display:flex; gap:10px;">
+                                <input type="text" id="config_login_video" name="login_video" class="form-control" placeholder="https://...">
+                                <input type="file" id="videoUpload" hidden onchange="uploadBrandingFile(this, 'config_login_video')">
+                                <button type="button" class="btn" style="width:auto;" onclick="document.getElementById('videoUpload').click()"><i class="fas fa-upload"></i></button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Terms of Service URL</label>
+                            <input type="text" id="config_terms_url" name="terms_url" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Privacy Policy URL</label>
+                            <input type="text" id="config_privacy_url" name="privacy_url" class="form-control">
+                        </div>
+                        <button type="submit" class="btn"><i class="fas fa-save"></i> Deploy Branding Changes</button>
+                    </form>
                 </div>
             </section>
 
@@ -747,7 +800,76 @@
             if (tabId === 'content') loadUploads();
             if (tabId === 'system') startSystemMonitor();
             if (tabId === 'wallet') loadWalletData();
-            else stopSystemMonitor();
+            if (tabId === 'branding') loadBranding();
+        }
+
+        async function loadBranding() {
+            try {
+                const res = await fetch('/api/config');
+                const config = await res.json();
+                
+                document.getElementById('config_app_name').value = config.app_name || '';
+                document.getElementById('config_app_version').value = config.app_version || '';
+                document.getElementById('config_hero_text').value = config.hero_text || '';
+                document.getElementById('config_app_logo').value = config.app_logo || '';
+                document.getElementById('config_login_video').value = config.login_video || '';
+                document.getElementById('config_terms_url').value = config.terms_url || '';
+                document.getElementById('config_privacy_url').value = config.privacy_url || '';
+            } catch (err) {
+                console.error('Failed to load branding', err);
+            }
+        }
+
+        document.getElementById('brandingForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = [
+                { key: 'app_name', value: document.getElementById('config_app_name').value },
+                { key: 'app_version', value: document.getElementById('config_app_version').value },
+                { key: 'hero_text', value: document.getElementById('config_hero_text').value },
+                { key: 'app_logo', value: document.getElementById('config_app_logo').value },
+                { key: 'login_video', value: document.getElementById('config_login_video').value },
+                { key: 'terms_url', value: document.getElementById('config_terms_url').value },
+                { key: 'privacy_url', value: document.getElementById('config_privacy_url').value }
+            ];
+
+            try {
+                const res = await fetch('/admin/config/bulk', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    alert('Branding deployed successfully!');
+                } else {
+                    alert('Deployment failed: ' + result.error);
+                }
+            } catch (err) {
+                alert('Connection Error');
+            }
+        });
+
+        async function uploadBrandingFile(input, targetId) {
+            if (!input.files || !input.files[0]) return;
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+
+            try {
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.url) {
+                    document.getElementById(targetId).value = data.url;
+                }
+            } catch (err) {
+                alert('Upload failed');
+            }
         }
 
         // --- Dashboard ---

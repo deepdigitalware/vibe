@@ -261,6 +261,56 @@ app.post('/admin/users/update', requireAuth, async (req, res) => {
     }
 });
 
+// --- App Config Endpoints ---
+
+// Get Public Config
+app.get('/api/config', async (req, res) => {
+    try {
+        const result = await db.query('SELECT key, value FROM app_config');
+        const config = {};
+        result.rows.forEach(row => {
+            config[row.key] = row.value;
+        });
+        res.json(config);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Admin: Update Config
+app.post('/admin/config/update', requireAuth, async (req, res) => {
+    const { key, value } = req.body;
+    if (!key) return res.status(400).json({ error: 'Missing key' });
+
+    try {
+        await db.query(
+            'INSERT INTO app_config (key, value, updated_at) VALUES ($1, $2, $3) ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = $3',
+            [key, value, Date.now()]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Admin: Bulk Update Config
+app.post('/admin/config/bulk', requireAuth, async (req, res) => {
+    const configs = req.body; // Array of {key, value}
+    if (!Array.isArray(configs)) return res.status(400).json({ error: 'Invalid data format' });
+
+    try {
+        for (const item of configs) {
+            await db.query(
+                'INSERT INTO app_config (key, value, updated_at) VALUES ($1, $2, $3) ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = $3',
+                [item.key, item.value, Date.now()]
+            );
+        }
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Admin: Analytics (Enhanced)
 app.get('/admin/analytics', requireAuth, async (req, res) => {
     try {

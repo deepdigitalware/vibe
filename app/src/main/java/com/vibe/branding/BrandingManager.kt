@@ -11,17 +11,20 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 data class BrandingConfig(
-    val appName: String?,
-    val splashLogoUrl: String?,
-    val heroTitle: String?,
-    val heroSubtitle: String?,
-    val billingRatePerBlockRupees: Int?,
-    val blockDurationMinutes: Int?,
-    val paymentsProvider: String?
+    val appName: String? = null,
+    val appVersion: String? = null,
+    val heroText: String? = null,
+    val appLogo: String? = null,
+    val loginVideo: String? = null,
+    val termsUrl: String? = null,
+    val privacyUrl: String? = null,
+    val billingRatePerBlockRupees: Int? = null,
+    val blockDurationMinutes: Int? = null,
+    val paymentsProvider: String? = null
 )
 
 object BrandingManager {
-    private const val DEFAULT_BASE = "http://10.0.2.2:4000"
+    private const val DEFAULT_BASE = "https://vibe.deepverse.cloud"
     private const val TAG = "BrandingManager"
 
     fun serverBaseUrl(ctx: Context): String {
@@ -39,7 +42,7 @@ object BrandingManager {
     fun fetchConfig(ctx: Context): BrandingConfig? {
         return try {
             val base = serverBaseUrl(ctx)
-            val url = URL("$base/config/app")
+            val url = URL("$base/api/config")
             val conn = url.openConnection() as HttpURLConnection
             conn.connectTimeout = 4000
             conn.readTimeout = 4000
@@ -50,10 +53,13 @@ object BrandingManager {
                 val text = conn.inputStream.bufferedReader().use { it.readText() }
                 val json = JSONObject(text)
                 BrandingConfig(
-                    appName = json.optString("appName"),
-                    splashLogoUrl = json.optString("splashLogoUrl"),
-                    heroTitle = json.optString("heroTitle"),
-                    heroSubtitle = json.optString("heroSubtitle"),
+                    appName = json.optString("app_name"),
+                    appVersion = json.optString("app_version"),
+                    heroText = json.optString("hero_text"),
+                    appLogo = json.optString("app_logo"),
+                    loginVideo = json.optString("login_video"),
+                    termsUrl = json.optString("terms_url"),
+                    privacyUrl = json.optString("privacy_url"),
                     billingRatePerBlockRupees = json.optInt("billingRatePerBlockRupees"),
                     blockDurationMinutes = json.optInt("blockDurationMinutes"),
                     paymentsProvider = json.optString("paymentsProvider")
@@ -69,7 +75,6 @@ object BrandingManager {
     }
 
     fun loadLogoBitmap(ctx: Context, urlString: String?): Bitmap? {
-        // Try remote URL first
         if (urlString != null && urlString.isNotBlank()) {
             try {
                 val url = URL(if (urlString.startsWith("http")) urlString else serverBaseUrl(ctx) + urlString)
@@ -80,9 +85,8 @@ object BrandingManager {
                 Log.w(TAG, "Remote logo load failed: ${e.message}")
             }
         }
-        // Fallback to asset placeholder
         return try {
-            ctx.assets.open("branding/branding_logo.png").use { stream ->
+            ctx.assets.open("logo.png").use { stream ->
                 BitmapFactory.decodeStream(stream)
             }
         } catch (_: Exception) {
