@@ -1,7 +1,37 @@
 {
-  "FelTH2p0jYXLFVaeQWwcDxvpqpI2": {
-    "balance": 0,
-    "name": "User",
-    "bio": ""
+  "vibe_girl_001": {
+    "name": "Priya Sharma",
+    "username": "priya_vibe",
+    "bio": "Love traveling and music. Let's connect! 💃",
+    "avatar": "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=800&q=80",
+    "balance": 0
+  },
+  "vibe_girl_002": {
+    "name": "Ananya Das",
+    "username": "ananya_kol",
+    "bio": "Bengali girl | Art lover | Coffee addict ☕",
+    "avatar": "https://images.unsplash.com/photo-1531123897727-8f129e16fd3c?auto=format&fit=crop&w=800&q=80",
+    "balance": 0
+  },
+  "vibe_girl_003": {
+    "name": "Sneha Mukherjee",
+    "username": "sneha_sweet",
+    "bio": "Dancing is my passion. Sweet and simple. ✨",
+    "avatar": "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=800&q=80",
+    "balance": 0
+  },
+  "vibe_girl_004": {
+    "name": "Ishani Bose",
+    "username": "ishani_b",
+    "bio": "Foodie | Movie buff | Let's chat! 🍿",
+    "avatar": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80",
+    "balance": 0
+  },
+  "vibe_girl_005": {
+    "name": "Riya Sen",
+    "username": "riya_sen_vibe",
+    "bio": "Living my best life. Always happy! 😊",
+    "avatar": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=800&q=80",
+    "balance": 0
   }
 }

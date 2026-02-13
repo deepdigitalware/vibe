@@ -158,7 +158,7 @@ class DiscoverFragment : Fragment() {
             val tvLocation: TextView = view.findViewById(R.id.tvLocation)
             val tvBio: TextView = view.findViewById(R.id.tvBio)
             val ivProfile: ImageView = view.findViewById(R.id.ivProfile)
-            val ivOnline: ImageView = view.findViewById(R.id.ivOnline)
+            val layoutOnline: View = view.findViewById(R.id.layoutOnline)
             val tvFlag: TextView = view.findViewById(R.id.tvFlag)
             
             val btnLike: View = view.findViewById(R.id.btnLike)
@@ -177,7 +177,7 @@ class DiscoverFragment : Fragment() {
             holder.tvBio.text = user.bio
             holder.ivProfile.setBackgroundColor(user.color)
             
-            holder.ivOnline.visibility = if (user.isOnline) View.VISIBLE else View.GONE
+            holder.layoutOnline.visibility = if (user.isOnline) View.VISIBLE else View.GONE
             
             // Set flag emoji
             holder.tvFlag.text = getFlagEmoji(user.countryCode)

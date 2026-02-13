@@ -22,6 +22,35 @@
             android:src="@color/cardview_dark_background"
             app:layout_constraintTop_toTopOf="parent" />
 
+        <!-- Online Indicator (Top Left) -->
+        <LinearLayout
+            android:id="@+id/layoutOnline"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            android:background="@drawable/bg_dark_transparent_rounded"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="6dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <View
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/circle_bg"
+                android:backgroundTint="#4CAF50" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Online"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
         <!-- Gradient Overlay -->
         <View
             android:layout_width="match_parent"
@@ -60,15 +89,6 @@
                     android:textColor="#FFFFFF"
                     android:textSize="22sp"
                     android:textStyle="bold" />
-
-                <ImageView
-                    android:id="@+id/ivOnline"
-                    android:layout_width="12dp"
-                    android:layout_height="12dp"
-                    android:layout_marginStart="8dp"
-                    android:src="@drawable/circle_bg"
-                    app:tint="#4CAF50"
-                    android:visibility="gone" />
 
                 <!-- Like Button (Circle UI matching Profile View) -->
                 <androidx.cardview.widget.CardView
