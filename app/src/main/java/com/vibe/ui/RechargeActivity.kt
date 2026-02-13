@@ -47,12 +47,29 @@ class RechargeActivity : AppCompatActivity(), PaymentResultListener {
         lifecycleScope.launch {
             val success = wallet.updateTransaction(txnId, status, ref)
             if (success && status == "SUCCESS") {
-                showDialog("Payment Successful", "Added funds to your wallet!", true)
+                showSnackbar("Payment Successful! Added funds to your wallet.", true)
             } else if (status == "PENDING") {
-                showDialog("Payment Pending", "Transaction submitted. Balance will update once approved.", true)
+                showSnackbar("Payment Pending. Balance will update once approved.", true)
             } else {
-                showDialog("Payment Failed", "Transaction failed or cancelled.")
+                showSnackbar("Payment Failed or Cancelled.")
             }
+        }
+    }
+
+    private fun showSnackbar(msg: String, finish: Boolean = false) {
+        val view = findViewById<View>(android.R.id.content)
+        com.google.android.material.snackbar.Snackbar.make(view, msg, com.google.android.material.snackbar.Snackbar.LENGTH_LONG).apply {
+            if (finish) {
+                addCallback(object : com.google.android.material.snackbar.BaseTransientBottomBar.BaseCallback<com.google.android.material.snackbar.Snackbar>() {
+                    override fun onDismissed(transientBottomBar: com.google.android.material.snackbar.Snackbar?, event: Int) {
+                        super.onDismissed(transientBottomBar, event)
+                        finish()
+                    }
+                })
+            }
+            setBackgroundTint(resources.getColor(R.color.surfaceColor))
+            setTextColor(resources.getColor(R.color.white))
+            show()
         }
     }
 
@@ -136,7 +153,7 @@ class RechargeActivity : AppCompatActivity(), PaymentResultListener {
         val earned = prefs.getFloat("earned_cash", 0f)
         
         if (earned < 1000) {
-            showDialog("Minimum Withdrawal", "You need at least ₹1000 in earned cash to withdraw. Current: ₹${String.format("%.2f", earned)}")
+            showSnackbar("Min ₹1000 required to withdraw. Current: ₹${String.format("%.2f", earned)}")
             return
         }
 
@@ -148,9 +165,9 @@ class RechargeActivity : AppCompatActivity(), PaymentResultListener {
                 // Reset earned cash locally on success
                 prefs.edit().putFloat("earned_cash", 0f).apply()
                 updateBalances()
-                showDialog("Success", "Withdrawal request of ₹$earned submitted successfully!")
+                showSnackbar("Withdrawal request of ₹$earned submitted successfully!")
             } else {
-                showDialog("Withdrawal Failed", response.message ?: "Unknown error occurred")
+                showSnackbar(response.message ?: "Withdrawal Failed")
             }
         }
     }

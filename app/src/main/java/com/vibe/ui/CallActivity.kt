@@ -27,13 +27,19 @@ class CallActivity : AppCompatActivity() {
     private lateinit var btnAnswerCall: Button
     private lateinit var btnDeclineCall: Button
     private lateinit var tvCallStatus: TextView
-    private lateinit var rtcClient: RtcClient
-    private lateinit var liveKitClient: LiveKitClient
-    private lateinit var wallet: WalletManager
+    private lateinit var tvCallerName: TextView
+    private lateinit var ivRemoteAvatar: android.widget.ImageView
+    private lateinit var ivRingingBackground: android.widget.ImageView
+    private var rtcClient: RtcClient? = null
+    private var liveKitClient: LiveKitClient? = null
+    private var wallet: WalletManager? = null
     private var blockTimer: CountDownTimer? = null
+    private var ringTimer: CountDownTimer? = null
     private var ringtone: android.media.Ringtone? = null
     private var role: String? = null
     private var roomId: String? = null
+    private var remoteUserName: String? = null
+    private var remoteUserImage: String? = null
     private var liveKitToken: String? = null
     private var liveKitUrl: String? = null
     private val socket = com.vibe.util.SocketManager.getSocket()
@@ -60,6 +66,9 @@ class CallActivity : AppCompatActivity() {
         btnAnswerCall = findViewById(R.id.btnAnswerCall)
         btnDeclineCall = findViewById(R.id.btnDeclineCall)
         tvCallStatus = findViewById(R.id.tvCallStatus)
+        tvCallerName = findViewById(R.id.tvCallerName)
+        ivRemoteAvatar = findViewById(R.id.ivRemoteAvatar)
+        ivRingingBackground = findViewById(R.id.ivRingingBackground)
 
         rtcClient = RtcClient(this)
         liveKitClient = LiveKitClient(this).apply { init(this@CallActivity) }
@@ -67,9 +76,14 @@ class CallActivity : AppCompatActivity() {
 
         role = intent.getStringExtra(EXTRA_ROLE)
         roomId = intent.getStringExtra(EXTRA_ROOM_ID)
+        remoteUserName = intent.getStringExtra(EXTRA_USER_NAME)
+        remoteUserImage = intent.getStringExtra(EXTRA_USER_IMAGE)
         liveKitToken = intent.getStringExtra(EXTRA_LIVEKIT_TOKEN)
         liveKitUrl = intent.getStringExtra(EXTRA_LIVEKIT_URL)
         
+        tvCallerName.text = remoteUserName ?: "Vibe User"
+        loadProfileImages()
+
         btnEndCall.setOnClickListener { endCallFlow() }
         btnDeclineCall.setOnClickListener { endCallFlow() }
         btnAnswerCall.setOnClickListener { acceptCall() }
@@ -78,13 +92,29 @@ class CallActivity : AppCompatActivity() {
             if (liveKitToken != null) {
                 // LiveKit camera switch logic can be added here
             } else {
-                rtcClient.switchCamera()
+                rtcClient?.switchCamera()
             }
         }
         setupDraggableLocalView()
         hideSystemUI()
 
         permissionLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO))
+    }
+
+    private fun loadProfileImages() {
+        remoteUserImage?.let { url ->
+            com.bumptech.glide.Glide.with(this)
+                .load(url)
+                .placeholder(R.drawable.ic_profile)
+                .error(R.drawable.ic_profile)
+                .into(ivRemoteAvatar)
+
+            com.bumptech.glide.Glide.with(this)
+                .load(url)
+                .placeholder(R.drawable.ic_profile)
+                .error(R.drawable.ic_profile)
+                .into(ivRingingBackground)
+        }
     }
 
     private fun setupRingingUI() {
@@ -121,6 +151,7 @@ class CallActivity : AppCompatActivity() {
 
     private fun onCallConnected() {
         stopRingtone()
+        ringTimer?.cancel()
         layoutRinging.visibility = android.view.View.GONE
         startCallFlow()
     }
@@ -165,24 +196,20 @@ class CallActivity : AppCompatActivity() {
 
     private fun playRingtone() {
         try {
-            val uri = if (role == "caller") {
-                 android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_RINGTONE) // Or TYPE_ALARM/NOTIFICATION for caller
-            } else {
-                 android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_RINGTONE)
-            }
-            // Ideally caller hears a ringback, callee hears a ringtone.
-            // Using system ringtone for both as placeholder for now, or distinguish if possible.
-            // For caller, usually we play a "beep beep" tone (ToneGenerator), but user asked for ringtone.
-            
+            val uri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_RINGTONE)
             ringtone = android.media.RingtoneManager.getRingtone(applicationContext, uri)
             ringtone?.play()
             
-            // Auto-cancel call if not answered within 45 seconds
-            object : CountDownTimer(45000, 1000) {
+            // Auto-cancel call if not answered within 40 seconds
+            ringTimer?.cancel()
+            ringTimer = object : CountDownTimer(40000, 1000) {
                 override fun onTick(millisUntilFinished: Long) {}
                 override fun onFinish() {
                     if (layoutRinging.visibility == android.view.View.VISIBLE) {
-                        endCallFlow()
+                        tvCallStatus.text = "Not answered"
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            endCallFlow()
+                        }, 2000)
                     }
                 }
             }.start()
@@ -200,28 +227,13 @@ class CallActivity : AppCompatActivity() {
         }
     }
 
-    private fun loadAds() {
-        /*
-        try {
-            val adRequest = com.google.android.gms.ads.AdRequest.Builder().build()
-            findViewById<com.google.android.gms.ads.AdView>(R.id.adViewTop).loadAd(adRequest)
-            findViewById<com.google.android.gms.ads.AdView>(R.id.adViewBottom).loadAd(adRequest)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        */
-    }
-
     private fun startCallFlow() {
         lifecycleScope.launch {
             // Role check: Only caller pays, Callee earns
             val r = role
             
             if (r == "caller") {
-                // We no longer deduct upfront on client-side.
-                // The VPS backend (Socket.IO) handles billing on disconnect.
-                // But we still check if they have enough balance to start.
-                val balance = wallet.getBalanceSync()
+                val balance = wallet?.getBalanceSync() ?: 0.0
                 if (balance < BillingConfig.CALLER_COST_PER_MINUTE) {
                     AlertDialog.Builder(this@CallActivity)
                         .setTitle("Insufficient balance")
@@ -243,22 +255,19 @@ class CallActivity : AppCompatActivity() {
 
             if (lkToken != null && lkUrl != null) {
                 // Use LiveKit for SFU-based calling
-                liveKitClient.joinRoom(
+                liveKitClient?.joinRoom(
                     lkUrl,
                     lkToken,
                     findViewById(R.id.localContainer),
                     findViewById(R.id.remoteContainer)
                 )
             } else if (r == "caller" && id != null) {
-                rtcClient.startAsCaller(R.id.localContainer, R.id.remoteContainer, id)
+                rtcClient?.startAsCaller(R.id.localContainer, R.id.remoteContainer, id)
             } else if (r == "callee" && id != null) {
-                rtcClient.startAsCallee(R.id.localContainer, R.id.remoteContainer, id)
+                rtcClient?.startAsCallee(R.id.localContainer, R.id.remoteContainer, id)
             } else {
-                rtcClient.startPreview(R.id.localContainer, R.id.remoteContainer)
+                rtcClient?.startPreview(R.id.localContainer, R.id.remoteContainer)
             }
-            
-            // Server-side handles the timer now via Socket.IO disconnect
-            // startBlockCountdown() // Deprecated client-side timer
         }
     }
 
@@ -284,7 +293,7 @@ class CallActivity : AppCompatActivity() {
                 lifecycleScope.launch {
                     if (role == "caller") {
                         // Caller pays
-                        val ok = wallet.deductBlockIfPossible(BillingConfig.CALLER_COST_PER_MINUTE)
+                        val ok = wallet?.deductBlockIfPossible(BillingConfig.CALLER_COST_PER_MINUTE) ?: false
                         if (ok) {
                             startBlockCountdown()
                         } else {
@@ -297,7 +306,7 @@ class CallActivity : AppCompatActivity() {
                         }
                     } else {
                         // Callee earns
-                        wallet.addBalanceRupees(BillingConfig.RECEIVER_EARNING_PER_MINUTE.toDouble())
+                        wallet?.addBalanceRupees(BillingConfig.RECEIVER_EARNING_PER_MINUTE.toDouble())
                         
                         // Show earnings toast/snackbar
                         Snackbar.make(
@@ -315,15 +324,18 @@ class CallActivity : AppCompatActivity() {
 
     private fun endCallFlow() {
         stopRingtone()
+        ringTimer?.cancel()
         blockTimer?.cancel()
-        rtcClient.endCall()
-        liveKitClient.leaveRoom()
+        rtcClient?.endCall()
+        liveKitClient?.leaveRoom()
         finish()
     }
 
     companion object {
         private const val EXTRA_ROLE = "extra_role"
         private const val EXTRA_ROOM_ID = "extra_room_id"
+        private const val EXTRA_USER_NAME = "extra_user_name"
+        private const val EXTRA_USER_IMAGE = "extra_user_image"
         private const val EXTRA_LIVEKIT_TOKEN = "extra_livekit_token"
         private const val EXTRA_LIVEKIT_URL = "extra_livekit_url"
 
@@ -331,12 +343,16 @@ class CallActivity : AppCompatActivity() {
             context: Context,
             role: String? = null,
             roomId: String? = null,
+            userName: String? = null,
+            userImage: String? = null,
             liveKitToken: String? = null,
             liveKitUrl: String? = null
         ): Intent =
             Intent(context, CallActivity::class.java).apply {
                 if (role != null) putExtra(EXTRA_ROLE, role)
                 if (roomId != null) putExtra(EXTRA_ROOM_ID, roomId)
+                if (userName != null) putExtra(EXTRA_USER_NAME, userName)
+                if (userImage != null) putExtra(EXTRA_USER_IMAGE, userImage)
                 if (liveKitToken != null) putExtra(EXTRA_LIVEKIT_TOKEN, liveKitToken)
                 if (liveKitUrl != null) putExtra(EXTRA_LIVEKIT_URL, liveKitUrl)
             }

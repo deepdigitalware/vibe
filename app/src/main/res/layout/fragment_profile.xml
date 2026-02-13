@@ -176,10 +176,10 @@
                 android:text="Recharge"
                 android:textSize="12sp"
                 android:layout_marginHorizontal="4dp"
-                android:background="@drawable/bg_recharge_button"
-                app:backgroundTint="@null"
-                android:textColor="@color/white"
-                app:cornerRadius="8dp"/>
+                android:backgroundTint="@color/primaryColor"
+                android:textColor="#000000"
+                android:textStyle="bold"
+                app:cornerRadius="24dp"/>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnBalance"
@@ -191,7 +191,8 @@
                 android:layout_marginStart="4dp"
                 android:backgroundTint="#2A2A2A"
                 android:textColor="@color/white"
-                app:cornerRadius="8dp"/>
+                android:textStyle="bold"
+                app:cornerRadius="24dp"/>
         </LinearLayout>
 
         <TextView

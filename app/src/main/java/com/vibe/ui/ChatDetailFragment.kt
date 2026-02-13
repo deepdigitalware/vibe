@@ -589,11 +589,11 @@ class ChatDetailFragment : Fragment() {
                 constraintSet.setHorizontalBias(R.id.cardMessage, 1.0f)
                 constraintSet.setHorizontalBias(R.id.tvSenderName, 1.0f)
                 
-                // Aqua Mint Bubble (#A7E3B9)
+                // Light Green Bubble (#d8fcd1)
                 holder.card.setBackgroundResource(R.drawable.bg_chat_outgoing)
                 holder.tvMessage.setTextColor(Color.BLACK)
-                holder.tvTimestamp.setTextColor(Color.parseColor("#555555"))
-                ImageViewCompat.setImageTintList(holder.ivStatus, ColorStateList.valueOf(Color.parseColor("#555555")))
+                holder.tvTimestamp.setTextColor(Color.parseColor("#666666"))
+                ImageViewCompat.setImageTintList(holder.ivStatus, ColorStateList.valueOf(Color.parseColor("#666666")))
                 
                 holder.ivStatus.visibility = View.VISIBLE
                 setStatusIcon(holder.ivStatus, item.status)

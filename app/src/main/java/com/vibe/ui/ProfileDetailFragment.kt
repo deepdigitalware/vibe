@@ -154,7 +154,7 @@ class ProfileDetailFragment : Fragment() {
         val ivOnlineStatus = view.findViewById<ImageView>(R.id.ivOnlineStatus)
         val ivCoverImage = view.findViewById<ImageView>(R.id.ivCoverImage)
         val ivProfileAvatar = view.findViewById<ImageView>(R.id.ivProfileAvatar)
-        val btnLike = view.findViewById<ImageView>(R.id.btnLike)
+        val btnLike = view.findViewById<android.widget.ImageButton>(R.id.btnLike)
         val btnClose = view.findViewById<ImageView>(R.id.btnClose)
         val btnVideoCall = view.findViewById<Button>(R.id.btnVideoCall)
         val btnChat = view.findViewById<Button>(R.id.btnChat)
@@ -197,11 +197,13 @@ class ProfileDetailFragment : Fragment() {
         btnLike.setOnClickListener {
             if (isMatchSent) {
                 isMatchSent = false
-                btnLike.setImageResource(R.drawable.ic_heart)
+                btnLike.setImageResource(R.drawable.ic_heart_outline)
+                btnLike.setColorFilter(Color.WHITE)
                 view.showSnackbar("Match Request Cancelled")
             } else {
                 isMatchSent = true
-                btnLike.setImageResource(R.drawable.ic_check) // Using check as "Sent" indicator
+                btnLike.setImageResource(R.drawable.ic_heart_filled)
+                btnLike.setColorFilter(Color.RED)
                 view.showSnackbar("Match Request Sent")
             }
         }
@@ -230,7 +232,13 @@ class ProfileDetailFragment : Fragment() {
 
         btnVideoCall.setOnClickListener {
             // Start video call logic (deduct money)
-            val intent = CallActivity.newIntent(requireContext(), role = "caller", roomId = "Room_${name.replace(" ", "_")}")
+            val intent = CallActivity.newIntent(
+                requireContext(), 
+                role = "caller", 
+                roomId = "Room_${name.replace(" ", "_")}",
+                userName = name,
+                userImage = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" // Placeholder for now
+            )
             startActivity(intent)
         }
 

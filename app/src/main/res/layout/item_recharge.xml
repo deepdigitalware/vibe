@@ -5,20 +5,20 @@
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
     app:cardBackgroundColor="@color/surfaceColor"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="4dp">
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="16dp">
+        android:padding="20dp">
 
         <TextView
             android:id="@+id/tvAmount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="₹100"
-            android:textColor="@color/onBackground"
+            android:textColor="@color/white"
             android:textSize="24sp"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
@@ -30,7 +30,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="Get ₹120 (₹20 Bonus)"
-            android:textColor="#4CAF50"
+            android:textColor="@color/primaryColor"
             android:textSize="14sp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tvAmount" />
@@ -39,13 +39,13 @@
             android:id="@+id/btnPay"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Pay via UPI"
+            android:text="Pay UPI"
             app:icon="@drawable/ic_upi"
             app:iconGravity="textStart"
             app:iconPadding="8dp"
-            app:iconTint="@android:color/white"
+            app:iconTint="#000000"
             android:backgroundTint="@color/primaryColor"
-            android:textColor="@android:color/black"
+            android:textColor="#000000"
             android:textStyle="bold"
             android:textAllCaps="false"
             app:cornerRadius="24dp"
