@@ -158,19 +158,33 @@ class LoginActivity : AppCompatActivity() {
 
     private fun applyDynamicBranding() {
         lifecycleScope.launch(Dispatchers.IO) {
+            // Load local logo from assets as priority
+            val localLogo = try {
+                val inputStream = assets.open("logo.png")
+                val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
+                inputStream.close()
+                bitmap
+            } catch (e: Exception) {
+                null
+            }
+
             val config = BrandingManager.fetchConfig(this@LoginActivity)
-            val logoBitmap = BrandingManager.loadLogoBitmap(this@LoginActivity, config?.appLogo)
+            val remoteLogoBitmap = if (localLogo == null) {
+                BrandingManager.loadLogoBitmap(this@LoginActivity, config?.appLogo)
+            } else null
             
             withContext(Dispatchers.Main) {
+                // Apply local logo if found, otherwise remote
+                localLogo?.let {
+                    findViewById<ImageView>(R.id.ivLogo)?.setImageBitmap(it)
+                } ?: remoteLogoBitmap?.let {
+                    findViewById<ImageView>(R.id.ivLogo)?.setImageBitmap(it)
+                }
+
                 config?.let { cfg ->
                     // Apply Subtitle/Hero Text
                     if (!cfg.heroText.isNullOrBlank()) {
                         findViewById<TextView>(R.id.tvSubtitle)?.text = cfg.heroText
-                    }
-                    
-                    // Apply Logo
-                    logoBitmap?.let {
-                        findViewById<ImageView>(R.id.ivLogo)?.setImageBitmap(it)
                     }
 
                     // Apply Video Background if URL provided
@@ -187,12 +201,25 @@ class LoginActivity : AppCompatActivity() {
 
     private fun setupBackgroundVideo(videoUrl: String? = null) {
         try {
-            val uri = if (videoUrl != null) {
-                Uri.parse(videoUrl)
+            if (videoUrl != null) {
+                videoBackground.setVideoURI(Uri.parse(videoUrl))
             } else {
-                Uri.parse("android.resource://" + packageName + "/" + R.raw.login_bg)
+                // Try to load from assets first
+                try {
+                    val descriptor = assets.openFd("background.mp4")
+                    videoBackground.setVideoURI(Uri.parse("android.resource://" + packageName + "/" + R.raw.login_bg)) // Fallback if needed
+                    // For VideoView/ScalableVideoView, using a raw resource is more reliable than assets for MP4
+                    // But user explicitly asked for the assets path.
+                    // We'll use the assets path directly if possible or the raw resource if it matches.
+                } catch (e: Exception) {
+                    videoBackground.setVideoURI(Uri.parse("android.resource://" + packageName + "/" + R.raw.login_bg))
+                }
             }
-            videoBackground.setVideoURI(uri)
+            
+            // Overriding with specific user requested asset path logic
+            val assetUri = Uri.parse("file:///android_asset/background.mp4")
+            videoBackground.setVideoPath("file:///android_asset/background.mp4")
+            
             videoBackground.setOnPreparedListener { mp ->
                 mp.isLooping = true
                 mp.setVolume(0f, 0f)

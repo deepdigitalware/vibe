@@ -21,27 +21,24 @@ class ScalableVideoView @JvmOverloads constructor(
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        var width = getDefaultSize(videoWidth, widthMeasureSpec)
-        var height = getDefaultSize(videoHeight, heightMeasureSpec)
+        val widthSpecSize = MeasureSpec.getSize(widthMeasureSpec)
+        val heightSpecSize = MeasureSpec.getSize(heightMeasureSpec)
+
+        var width = widthSpecSize
+        var height = heightSpecSize
 
         if (videoWidth > 0 && videoHeight > 0) {
-            val widthSpecMode = MeasureSpec.getMode(widthMeasureSpec)
-            val widthSpecSize = MeasureSpec.getSize(widthMeasureSpec)
-            val heightSpecMode = MeasureSpec.getMode(heightMeasureSpec)
-            val heightSpecSize = MeasureSpec.getSize(heightMeasureSpec)
+            val viewAspectRatio = widthSpecSize.toFloat() / heightSpecSize.toFloat()
+            val videoAspectRatio = videoWidth.toFloat() / videoHeight.toFloat()
 
-            if (widthSpecMode == MeasureSpec.EXACTLY && heightSpecMode == MeasureSpec.EXACTLY) {
-                // Fill and crop logic
-                width = widthSpecSize
+            if (videoAspectRatio > viewAspectRatio) {
+                // Video is wider than the view, scale by height
+                width = (heightSpecSize * videoAspectRatio).toInt()
                 height = heightSpecSize
-
-                // for center crop
-                if (videoWidth * height < width * videoHeight) {
-                    // video is too wide, crop left/right
-                    // height is already set to heightSpecSize
-                } else if (videoWidth * height > width * videoHeight) {
-                    // video is too tall, crop top/bottom
-                }
+            } else {
+                // Video is taller than the view, scale by width
+                width = widthSpecSize
+                height = (widthSpecSize / videoAspectRatio).toInt()
             }
         }
         setMeasuredDimension(width, height)
