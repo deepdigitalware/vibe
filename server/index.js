@@ -23,8 +23,8 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 9999;
 const JWT_SECRET = process.env.JWT_SECRET || 'vibe-secret';
-const ADMIN_USER = process.env.ADMIN_USER || 'admin';
-const ADMIN_PASS = process.env.ADMIN_PASS || 'password';
+const ADMIN_USER = 'admin@deepverse.cloud';
+const ADMIN_PASS = 'Deep@VibeNetwork';
 
 // Initialize Firebase Admin
 let serviceAccount;

@@ -22,10 +22,10 @@ import kotlinx.coroutines.launch
 class CallActivity : AppCompatActivity() {
 
     private lateinit var tvBlockCountdown: TextView
-    private lateinit var btnEndCall: Button
+    private lateinit var btnEndCall: android.view.View
     private lateinit var layoutRinging: android.view.View
-    private lateinit var btnAnswerCall: Button
-    private lateinit var btnDeclineCall: Button
+    private lateinit var btnAnswerCall: android.view.View
+    private lateinit var btnDeclineCall: android.view.View
     private lateinit var tvCallStatus: TextView
     private lateinit var tvCallerName: TextView
     private lateinit var ivRemoteAvatar: android.widget.ImageView
@@ -153,7 +153,9 @@ class CallActivity : AppCompatActivity() {
         stopRingtone()
         ringTimer?.cancel()
         layoutRinging.visibility = android.view.View.GONE
+        findViewById<android.view.View>(R.id.layoutCallControls).visibility = android.view.View.VISIBLE
         startCallFlow()
+        startBlockCountdown()
     }
     
     private fun setupDraggableLocalView() {

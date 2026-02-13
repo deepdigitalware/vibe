@@ -444,6 +444,8 @@ function closeModal(id) {
 
 // --- User Management ---
 
+let currentUserGallery = [];
+
 async function loadUsers() {
     try {
         const res = await fetch(`${API_BASE}/admin/users`, {
@@ -457,69 +459,191 @@ async function loadUsers() {
         users.forEach(user => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${user.uid.substring(0, 8)}...</td>
-                <td>${user.name || 'Unknown'}</td>
-                <td>₹${(user.balance || 0).toFixed(2)}</td>
                 <td>
-                    <button class="btn btn-sm btn-credit" style="background:#28a745" onclick="openWalletModal('${user.uid}', ${user.balance || 0})">Wallet</button>
-                    <button class="btn btn-sm btn-delete" style="background:#dc3545" onclick="deleteUser('${user.uid}')">Delete</button>
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <img src="${user.avatar || '/uploads/default-avatar.png'}" class="user-avatar">
+                        <div>
+                            <div style="font-weight:600;">${user.name || 'New User'}</div>
+                            <div style="font-size:11px;color:var(--text-secondary);">${user.uid}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>@${user.username || 'not_set'}</td>
+                <td>
+                    <div style="font-size:13px;">Wallet: <span style="color:var(--success-color)">₹${(user.balance || 0).toFixed(2)}</span></div>
+                    <div style="font-size:13px;">Earned: <span style="color:var(--primary-color)">₹${(user.earned_cash || 0).toFixed(2)}</span></div>
+                </td>
+                <td>
+                    <span class="status-badge ${user.is_banned ? 'offline' : 'active'}">
+                        ${user.is_banned ? 'BANNED' : 'ACTIVE'}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-sm" style="width:auto;padding:8px 15px;background:#333;" onclick="openUserModal(${JSON.stringify(user).replace(/"/g, '&quot;')})">
+                        <i class="fas fa-edit"></i> Customize
+                    </button>
                 </td>
             `;
             tbody.appendChild(tr);
         });
         
         // Update Dashboard Stats
-        document.getElementById('dashUsers').innerText = users.length;
-        const totalBalance = users.reduce((acc, u) => acc + (u.balance || 0), 0);
-        document.getElementById('dashBalance').innerText = '₹' + totalBalance.toFixed(2);
+        const dashUsers = document.getElementById('dashUsers');
+        if (dashUsers) dashUsers.innerText = users.length;
+        
+        const dashBalance = document.getElementById('dashBalance');
+        if (dashBalance) {
+            const totalBalance = users.reduce((acc, u) => acc + parseFloat(u.balance || 0), 0);
+            dashBalance.innerText = '₹' + totalBalance.toFixed(2);
+        }
+
+        const dashEarned = document.getElementById('dashEarned');
+        if (dashEarned) {
+            const totalEarned = users.reduce((acc, u) => acc + parseFloat(u.earned_cash || 0), 0);
+            dashEarned.innerText = '₹' + totalEarned.toFixed(2);
+        }
+
+        const dashBanned = document.getElementById('dashBanned');
+        if (dashBanned) {
+            const bannedCount = users.filter(u => u.is_banned).length;
+            dashBanned.innerText = bannedCount + ' Banned';
+        }
         
     } catch (e) { console.error(e); }
 }
 
-function openWalletModal(uid, currentBalance) {
-    document.getElementById('walletUid').value = uid;
-    document.getElementById('currentBalance').innerText = '₹' + currentBalance.toFixed(2);
-    document.getElementById('walletAmount').value = '';
-    document.getElementById('walletModal').classList.add('active');
+function openUserModal(user) {
+    document.getElementById('editUid').value = user.uid;
+    document.getElementById('editName').value = user.name || '';
+    document.getElementById('editUsername').value = user.username || '';
+    document.getElementById('editBalance').value = user.balance || 0;
+    document.getElementById('editEarned').value = user.earned_cash || 0;
+    document.getElementById('editBio').value = user.bio || '';
+    
+    document.getElementById('avatarUrl').value = user.avatar || '';
+    document.getElementById('avatarPreview').src = user.avatar || '/uploads/default-avatar.png';
+    
+    document.getElementById('coverUrl').value = user.cover || '';
+    document.getElementById('coverPreview').src = user.cover || '/uploads/default-cover.png';
+    
+    currentUserGallery = user.gallery || [];
+    renderUserGallery();
+
+    const banBtn = document.getElementById('banBtn');
+    banBtn.innerText = user.is_banned ? 'Unban User' : 'Ban User';
+    banBtn.style.background = user.is_banned ? 'var(--success-color)' : 'var(--danger-color)';
+    banBtn.onclick = () => toggleUserBan(user.uid, !user.is_banned);
+
+    document.getElementById('userModal').classList.remove('hidden');
 }
 
-async function updateWallet(type) {
-    const uid = document.getElementById('walletUid').value;
-    const amount = parseFloat(document.getElementById('walletAmount').value);
-    
-    if (!amount || amount <= 0) return alert('Enter valid amount');
-    
-    const endpoint = type === 'add' ? '/wallet/add' : '/wallet/deduct';
-    
+function renderUserGallery() {
+    const grid = document.getElementById('editGalleryGrid');
+    grid.innerHTML = '';
+    currentUserGallery.forEach((url, idx) => {
+        const div = document.createElement('div');
+        div.style.position = 'relative';
+        div.innerHTML = `
+            <img src="${url}" style="width:100%;height:100px;object-fit:cover;border-radius:4px;border:1px solid #333;">
+            <button type="button" onclick="deleteFromGallery(${idx})" style="position:absolute;top:2px;right:2px;background:rgba(255,0,0,0.7);border:none;width:20px;height:20px;border-radius:50%;color:white;cursor:pointer;font-size:10px;"><i class="fas fa-times"></i></button>
+        `;
+        grid.appendChild(div);
+    });
+}
+
+async function uploadToUserGallery(input) {
+    if (input.files && input.files[0]) {
+        const formData = new FormData();
+        formData.append('file', input.files[0]);
+        try {
+            const res = await fetch(`${API_BASE}/api/upload`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+            const data = await res.json();
+            if (data.url) {
+                currentUserGallery.push(data.url);
+                renderUserGallery();
+            }
+        } catch (e) { alert('Upload failed'); }
+    }
+}
+
+function deleteFromGallery(idx) {
+    currentUserGallery.splice(idx, 1);
+    renderUserGallery();
+}
+
+function deleteUserPhoto(type) {
+    if (type === 'avatar') {
+        document.getElementById('avatarUrl').value = '';
+        document.getElementById('avatarPreview').src = '/uploads/default-avatar.png';
+    } else {
+        document.getElementById('coverUrl').value = '';
+        document.getElementById('coverPreview').src = '/uploads/default-cover.png';
+    }
+}
+
+async function saveUserCustomization() {
+    const uid = document.getElementById('editUid').value;
+    const data = {
+        userId: uid,
+        name: document.getElementById('editName').value,
+        username: document.getElementById('editUsername').value,
+        balance: parseFloat(document.getElementById('editBalance').value),
+        earnedCash: parseFloat(document.getElementById('editEarned').value),
+        bio: document.getElementById('editBio').value,
+        avatar: document.getElementById('avatarUrl').value,
+        cover: document.getElementById('coverUrl').value,
+        gallery: currentUserGallery
+    };
+
     try {
-        const res = await fetch(`${API_BASE}${endpoint}`, {
+        const res = await fetch(`${API_BASE}/admin/users/update`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: uid, amount })
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                uid: data.userId,
+                name: data.name,
+                username: data.username,
+                balance: data.balance,
+                earnedCash: data.earnedCash,
+                bio: data.bio
+            })
         });
-        const data = await res.json();
-        if (data.success) {
-            alert('Wallet updated!');
-            closeModal('walletModal');
-            loadUsers();
-        } else {
-            alert(data.error || data.message || 'Failed');
-        }
-    } catch (e) { alert('Error updating wallet'); }
+        
+        // Also update profile specific fields (avatar, cover, gallery)
+        await fetch(`${API_BASE}/profile/update`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(data)
+        });
+
+        alert('User profile updated successfully');
+        closeModal('userModal');
+        loadUsers();
+    } catch (e) { alert('Failed to update user'); }
 }
 
-async function deleteUser(uid) {
-    if (!confirm('Are you sure you want to delete this user?')) return;
+async function toggleUserBan(uid, status) {
     try {
-        const res = await fetch(`${API_BASE}/admin/users/${uid}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
+        await fetch(`${API_BASE}/admin/users/update`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ uid, isBanned: status })
         });
-        const data = await res.json();
-        if (data.success) {
-            loadUsers();
-        } else {
-            alert(data.error || 'Failed');
-        }
-    } catch (e) { alert('Error deleting user'); }
+        alert(`User ${status ? 'Banned' : 'Unbanned'}`);
+        closeModal('userModal');
+        loadUsers();
+    } catch (e) { alert('Action failed'); }
 }

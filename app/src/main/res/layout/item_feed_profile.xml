@@ -6,8 +6,8 @@
     android:layout_marginHorizontal="12dp"
     android:layout_marginVertical="4dp"
     app:cardCornerRadius="24dp"
-    app:cardElevation="2dp"
-    app:cardBackgroundColor="#1E1E1E">
+    app:cardElevation="0dp"
+    app:cardBackgroundColor="@android:color/transparent">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -19,44 +19,19 @@
             android:layout_width="match_parent"
             android:layout_height="450dp"
             android:scaleType="centerCrop"
-            android:src="@color/cardview_dark_background"
+            android:src="#E0E0E0"
             app:layout_constraintTop_toTopOf="parent" />
 
         <!-- Online Indicator (Top Left) -->
-        <LinearLayout
-            android:id="@+id/layoutOnline"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_margin="16dp"
-            android:background="@drawable/bg_dark_transparent_rounded"
-            android:gravity="center_vertical"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="6dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
-
-            <View
-                android:layout_width="10dp"
-                android:layout_height="10dp"
-                android:layout_marginEnd="6dp"
-                android:background="@drawable/circle_bg"
-                android:backgroundTint="#4CAF50" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Online"
-                android:textColor="#FFFFFF"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <!-- Gradient Overlay -->
         <View
-            android:layout_width="match_parent"
-            android:layout_height="250dp"
-            android:background="@drawable/bg_gradient_bottom"
-            app:layout_constraintBottom_toBottomOf="@id/ivProfile" />
+            android:id="@+id/layoutOnline"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:layout_margin="16dp"
+            android:background="@drawable/circle_bg"
+            android:backgroundTint="#4CAF50"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <!-- Info Overlay -->
         <LinearLayout

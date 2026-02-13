@@ -396,13 +396,13 @@
                 <div class="nav-item active" onclick="switchTab('dashboard', this)">
                     <i class="fas fa-chart-pie"></i> Real-time Dashboard
                 </div>
-                <div class="nav-item" onclick="switchTab('users', this)">
-                    <i class="fas fa-users"></i> User Management
+                <div class="nav-item" onclick="switchTab('users', this)" data-tab="users">
+                    <i class="fas fa-users"></i> User Database
                 </div>
-                <div class="nav-item" onclick="switchTab('wallet', this)">
-                    <i class="fas fa-wallet"></i> Global Wallet
+                <div class="nav-item" onclick="switchTab('wallet', this)" data-tab="wallet">
+                    <i class="fas fa-wallet"></i> Financials
                 </div>
-                <div class="nav-item" onclick="switchTab('content', this)">
+                <div class="nav-item" onclick="switchTab('content', this)" data-tab="content">
                     <i class="fas fa-photo-video"></i> Content Moderation
                 </div>
                 <div class="nav-item" onclick="switchTab('system', this)">
@@ -546,23 +546,105 @@
             <section id="users" class="tab-content hidden">
                 <div class="section-header">
                     <h1 class="section-title">User Database</h1>
+                    <div class="live-indicator"><div class="pulse"></div> SYNCED</div>
                 </div>
                 <div class="table-container">
-                    <table style="width: 100%;">
+                    <table id="usersTable">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Profile</th>
-                                <th>Balance</th>
+                                <th>User</th>
+                                <th>Username</th>
+                                <th>Financials</th>
                                 <th>Status</th>
-                                <th>Action</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="allUsersTable"></tbody>
+                        <tbody></tbody>
                     </table>
                 </div>
             </section>
         </main>
+    </div>
+
+    <!-- User Edit Modal -->
+    <div id="userModal" class="hidden" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:1000;display:flex;align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
+        <div style="background:var(--surface-color);padding:35px;border-radius:16px;width:100%;max-width:700px;border:1px solid var(--border-color);max-height:90vh;overflow-y:auto;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:25px;">
+                <h2 style="margin:0;">Customize Profile</h2>
+                <button onclick="closeModal('userModal')" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:24px;"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <form id="userEditForm">
+                <input type="hidden" id="editUid">
+                
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+                    <div class="form-group">
+                        <label>Display Name</label>
+                        <input type="text" id="editName" class="form-control" placeholder="Full Name">
+                    </div>
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="editUsername" class="form-control" placeholder="username">
+                    </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+                    <div class="form-group">
+                        <label>Wallet Balance (₹)</label>
+                        <input type="number" id="editBalance" class="form-control" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Cash Earned (₹)</label>
+                        <input type="number" id="editEarned" class="form-control" step="0.01">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Bio</label>
+                    <textarea id="editBio" class="form-control" rows="3" style="resize:none;"></textarea>
+                </div>
+
+                <div style="margin-top:30px;">
+                    <h3 style="margin-bottom:15px;font-size:18px;">Media Assets</h3>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:20px;">
+                        <div>
+                            <label style="font-size:12px;color:var(--text-secondary);">Profile Picture</label>
+                            <div style="position:relative;margin-top:5px;">
+                                <img id="avatarPreview" src="" style="width:100%;height:140px;object-fit:cover;border-radius:8px;background:#333;">
+                                <input type="file" id="avatarFile" hidden onchange="uploadFile(this, 'avatarPreview', 'avatarUrl')">
+                                <button type="button" onclick="document.getElementById('avatarFile').click()" style="position:absolute;bottom:5px;right:5px;background:var(--primary-color);border:none;width:30px;height:30px;border-radius:50%;color:white;cursor:pointer;"><i class="fas fa-camera"></i></button>
+                                <button type="button" onclick="deleteUserPhoto('avatar')" style="position:absolute;top:5px;right:5px;background:var(--danger-color);border:none;width:30px;height:30px;border-radius:50%;color:white;cursor:pointer;"><i class="fas fa-trash"></i></button>
+                                <input type="hidden" id="avatarUrl">
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-size:12px;color:var(--text-secondary);">Cover Image</label>
+                            <div style="position:relative;margin-top:5px;">
+                                <img id="coverPreview" src="" style="width:100%;height:140px;object-fit:cover;border-radius:8px;background:#333;">
+                                <input type="file" id="coverFile" hidden onchange="uploadFile(this, 'coverPreview', 'coverUrl')">
+                                <button type="button" onclick="document.getElementById('coverFile').click()" style="position:absolute;bottom:5px;right:5px;background:var(--primary-color);border:none;width:30px;height:30px;border-radius:50%;color:white;cursor:pointer;"><i class="fas fa-camera"></i></button>
+                                <button type="button" onclick="deleteUserPhoto('cover')" style="position:absolute;top:5px;right:5px;background:var(--danger-color);border:none;width:30px;height:30px;border-radius:50%;color:white;cursor:pointer;"><i class="fas fa-trash"></i></button>
+                                <input type="hidden" id="coverUrl">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top:25px;">
+                    <label style="font-size:12px;color:var(--text-secondary);">Album Gallery</label>
+                    <div id="editGalleryGrid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(100px, 1fr));gap:10px;margin-top:10px;">
+                        <!-- Gallery items -->
+                    </div>
+                    <button type="button" onclick="document.getElementById('galleryFile').click()" class="btn" style="margin-top:10px;background:#333;width:auto;padding:8px 15px;font-size:13px;"><i class="fas fa-plus"></i> Add to Album</button>
+                    <input type="file" id="galleryFile" hidden onchange="uploadToUserGallery(this)">
+                </div>
+
+                <div style="margin-top:35px;display:flex;gap:15px;">
+                    <button type="button" onclick="saveUserCustomization()" class="btn">Deploy Changes</button>
+                    <button type="button" id="banBtn" class="btn" style="background:var(--danger-color);width:auto;"></button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- Add Funds Modal -->

@@ -23,6 +23,7 @@ class DiscoverFragment : Fragment() {
         val age: Int, 
         var distance: String, 
         val bio: String,
+        val avatarUrl: String? = null,
         val color: Int = Color.DKGRAY,
         val isOnline: Boolean = false,
         var isMatched: Boolean = false,
@@ -130,20 +131,12 @@ class DiscoverFragment : Fragment() {
 
     private fun loadUsers() {
         feedList.clear()
-        // Simulate real locations (near NYC approx 40.7, -74.0)
-        // isMatched = false for potential matches
-        feedList.add(UiUser("Katina", 29, "6.0 km", "My name is Katina, call me. I'm 29 and I love adventure.", Color.parseColor("#E91E63"), isOnline = true, isMatched = false, countryCode = "US", city = "Manhattan", country = "USA", lat = 40.7128, lon = -74.0060))
-        feedList.add(UiUser("Emily", 23, "3.8 km", "Isn't online dating a blast? Okay, maybe it can be challenging at times... but let's make it fun!", Color.parseColor("#9C27B0"), isOnline = false, isMatched = false, countryCode = "GB", city = "London", country = "UK", lat = 40.7200, lon = -74.0100))
-        feedList.add(UiUser("Robert", 30, "2.0 km", "Have a good day! Looking for someone to share it with.", Color.parseColor("#2196F3"), isOnline = true, isMatched = true, countryCode = "CA", city = "Toronto", country = "Canada", lat = 40.7300, lon = -74.0200)) // Matched example
-        feedList.add(UiUser("Gloria", 20, "8.1 km", "Oh, it's amazing. I love art and music.", Color.parseColor("#FF9800"), isOnline = false, isMatched = false, isPending = true, countryCode = "FR", city = "Paris", country = "France", lat = 40.7400, lon = -74.0300)) // Pending example
-        feedList.add(UiUser("Bruce", 28, "12 km", "You look so beautiful. Let's grab coffee?", Color.parseColor("#4CAF50"), isOnline = true, isMatched = false, countryCode = "DE", city = "Berlin", country = "Germany", lat = 40.7500, lon = -74.0400))
-        feedList.add(UiUser("Leslie", 24, "5.5 km", "Love youth. Live life to the fullest.", Color.parseColor("#673AB7"), isOnline = false, isMatched = false, countryCode = "JP", city = "Tokyo", country = "Japan", lat = 40.7600, lon = -74.0500))
-        feedList.add(UiUser("Colleen", 26, "4.2 km", "Maybe tomorrow? Or maybe today!", Color.parseColor("#009688"), isOnline = true, isMatched = false, countryCode = "IN", city = "Kolkata", country = "India", lat = 40.7700, lon = -74.0600))
-        
-        // Don't filter out matched users anymore as we need to show different icons
-        // val filteredList = feedList.filter { !it.isMatched }
-        // feedList.clear()
-        // feedList.addAll(filteredList)
+        // Using real Indian/Bengali female user data matching database population
+        feedList.add(UiUser("Priya", 22, "1.2 km", "Lover of music and travel. Bengali girl living in Kolkata.", "https://images.unsplash.com/photo-1589156229687-496a31ad1d1f?auto=format&fit=crop&q=80&w=1000", Color.parseColor("#E91E63"), isOnline = true, isMatched = false, countryCode = "IN", city = "Kolkata", country = "India", lat = 22.5726, lon = 88.3639))
+        feedList.add(UiUser("Anjali", 24, "3.8 km", "Yoga enthusiast and foodie from Mumbai.", "https://images.unsplash.com/photo-1614283233556-f35b0c801ef1?auto=format&fit=crop&q=80&w=1000", Color.parseColor("#9C27B0"), isOnline = true, isMatched = false, countryCode = "IN", city = "Mumbai", country = "India", lat = 19.0760, lon = 72.8777))
+        feedList.add(UiUser("Sneha", 21, "2.5 km", "Art and culture lover. From beautiful Bengal.", "https://images.unsplash.com/photo-1594744803329-e58b31de3957?auto=format&fit=crop&q=80&w=1000", Color.parseColor("#2196F3"), isOnline = true, isMatched = false, countryCode = "IN", city = "Kolkata", country = "India", lat = 22.5726, lon = 88.3639))
+        feedList.add(UiUser("Riya", 23, "5.0 km", "Dance is my passion. Let's connect!", "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&q=80&w=1000", Color.parseColor("#FF9800"), isOnline = true, isMatched = false, countryCode = "IN", city = "Ahmedabad", country = "India", lat = 23.0225, lon = 72.5714))
+        feedList.add(UiUser("Ishani", 25, "4.2 km", "Professional photographer and dreamer.", "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=1000", Color.parseColor("#4CAF50"), isOnline = true, isMatched = false, countryCode = "IN", city = "Kolkata", country = "India", lat = 22.5726, lon = 88.3639))
         
         rvDiscoverFeed.adapter?.notifyDataSetChanged()
     }
@@ -175,7 +168,13 @@ class DiscoverFragment : Fragment() {
             holder.tvName.text = "${user.name}, ${user.age}"
             holder.tvLocation.text = "${user.distance} away"
             holder.tvBio.text = user.bio
-            holder.ivProfile.setBackgroundColor(user.color)
+            
+            // Load real image with Glide
+            com.bumptech.glide.Glide.with(holder.itemView.context)
+                .load(user.avatarUrl)
+                .placeholder(android.graphics.drawable.ColorDrawable(user.color))
+                .error(android.graphics.drawable.ColorDrawable(user.color))
+                .into(holder.ivProfile)
             
             holder.layoutOnline.visibility = if (user.isOnline) View.VISIBLE else View.GONE
             
