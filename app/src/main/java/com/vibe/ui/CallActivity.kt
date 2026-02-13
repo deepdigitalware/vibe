@@ -194,11 +194,15 @@ class CallActivity : AppCompatActivity() {
         hideSystemUI()
     }
 
+    private var mediaPlayer: android.media.MediaPlayer? = null
+
     private fun playRingtone() {
         try {
-            val uri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_RINGTONE)
-            ringtone = android.media.RingtoneManager.getRingtone(applicationContext, uri)
-            ringtone?.play()
+            val soundResId = if (role == "callee") R.raw.incoming_call else R.raw.outgoing_call
+            mediaPlayer?.release()
+            mediaPlayer = android.media.MediaPlayer.create(this, soundResId)
+            mediaPlayer?.isLooping = true
+            mediaPlayer?.start()
             
             // Auto-cancel call if not answered within 40 seconds
             ringTimer?.cancel()
@@ -221,7 +225,9 @@ class CallActivity : AppCompatActivity() {
     
     private fun stopRingtone() {
         try {
-            ringtone?.stop()
+            mediaPlayer?.stop()
+            mediaPlayer?.release()
+            mediaPlayer = null
         } catch (e: Exception) {
             e.printStackTrace()
         }

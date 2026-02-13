@@ -239,10 +239,9 @@ class ChatDetailFragment : Fragment() {
     
     private fun playSentSound() {
         try {
-            // Use a short system sound for sent message
-             val notification = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION)
-             val r = android.media.RingtoneManager.getRingtone(context, notification)
-             r.play()
+            val mediaPlayer = android.media.MediaPlayer.create(context, R.raw.sent_message)
+            mediaPlayer.setOnCompletionListener { it.release() }
+            mediaPlayer.start()
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -250,9 +249,9 @@ class ChatDetailFragment : Fragment() {
     
     private fun playReceivedSound() {
         try {
-             val notification = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION)
-             val r = android.media.RingtoneManager.getRingtone(context, notification)
-             r.play()
+            val mediaPlayer = android.media.MediaPlayer.create(context, R.raw.received_message)
+            mediaPlayer.setOnCompletionListener { it.release() }
+            mediaPlayer.start()
         } catch (e: Exception) {
             e.printStackTrace()
         }

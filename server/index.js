@@ -32,12 +32,13 @@ let serviceAccount;
 try {
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-  } else {
+  } else if (fs.existsSync(path.join(__dirname, 'service-account.json'))) {
     serviceAccount = require('./service-account.json');
+  } else {
+    console.warn("Notice: service-account.json not found and FIREBASE_SERVICE_ACCOUNT env not set.");
   }
 } catch (error) {
-  console.warn("Warning: Could not load Firebase credentials. Authentication features may not work.");
-  console.warn("Please set FIREBASE_SERVICE_ACCOUNT environment variable or ensure service-account.json exists.");
+  console.warn("Warning: Error parsing Firebase credentials:", error.message);
 }
 
 if (serviceAccount) {

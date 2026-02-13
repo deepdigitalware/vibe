@@ -44,7 +44,8 @@ object NotificationHelper {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
-            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setSound(android.net.Uri.parse("android.resource://" + context.packageName + "/" + R.raw.notification))
+            .setDefaults(NotificationCompat.DEFAULT_VIBRATE or NotificationCompat.DEFAULT_LIGHTS)
 
         try {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || 
