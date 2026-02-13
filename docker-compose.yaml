@@ -22,29 +22,10 @@ services:
     networks:
       - vibe-network
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:9999/health', (res) => res.statusCode === 200 ? process.exit(0) : process.exit(1))\""]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9999/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
-
-  # LiveKit SFU: Serves Video Infrastructure (live.vibe.deepverse.cloud)
-  livekit:
-    image: livekit/livekit-server:latest
-    container_name: vibe-livekit
-    restart: always
-    network_mode: host
-    environment:
-      LIVEKIT_CONFIG: |
-        port: 7880
-        rtc:
-          tcp_port: 7881
-          udp_port: 7882
-          port_range_start: 50000
-          port_range_end: 60000
-          use_external_ip: true
-        keys:
-          DEV8F2D5C1A9B7642E3: "7d8f2a9c4e1b6d3f0a5c8b2e7f4d1a9c6b3e0f5a4c7d2b8e1f9a0c3d6b5e2f7"
-    # Removed healthcheck as livekit image is minimal and lacks curl/wget
 
   # Database
   postgres:
