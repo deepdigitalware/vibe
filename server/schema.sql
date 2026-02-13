@@ -10,7 +10,9 @@ CREATE TABLE IF NOT EXISTS users (
     avatar TEXT,
     cover TEXT,
     gallery JSONB DEFAULT '[]',
-    role TEXT DEFAULT 'user'
+    role TEXT DEFAULT 'user',
+    is_banned BOOLEAN DEFAULT FALSE,
+    earned_cash DECIMAL(10, 2) DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS cms (
@@ -24,7 +26,10 @@ CREATE TABLE IF NOT EXISTS transactions (
     amount DECIMAL(10, 2),
     type TEXT,
     description TEXT,
-    date BIGINT
+    date BIGINT,
+    status TEXT DEFAULT 'PENDING',
+    txn_id TEXT UNIQUE,
+    approval_ref TEXT
 );
 
 CREATE TABLE IF NOT EXISTS uploads (

@@ -433,33 +433,33 @@
                         <div class="stat-header">
                             <div class="stat-icon"><i class="fas fa-users"></i></div>
                         </div>
-                        <h2 class="stat-value" id="dashUsers">52,447</h2>
-                        <p class="stat-label">Active Users</p>
-                        <div class="stat-trend"><i class="fas fa-arrow-up"></i> +12% this week</div>
+                        <h2 class="stat-value" id="dashUsers">0</h2>
+                        <p class="stat-label">Total Users</p>
+                        <div class="stat-trend" id="dashBanned">0 Banned</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-header">
-                            <div class="stat-icon pink"><i class="fas fa-video"></i></div>
+                            <div class="stat-icon pink"><i class="fas fa-wallet"></i></div>
                         </div>
-                        <h2 class="stat-value">1,247</h2>
-                        <p class="stat-label">Live Video Calls</p>
-                        <div class="stat-trend"><i class="fas fa-arrow-up"></i> +5% current load</div>
+                        <h2 class="stat-value" id="dashEarned">₹0</h2>
+                        <p class="stat-label">Total Earned Cash</p>
+                        <div class="stat-trend">Withdrawal Liability</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-header">
                             <div class="stat-icon green"><i class="fas fa-coins"></i></div>
                         </div>
-                        <h2 class="stat-value" id="dashBalance">₹8.4M</h2>
-                        <p class="stat-label">Total Wallet Float</p>
-                        <div class="stat-trend"><i class="fas fa-arrow-up"></i> +24% vs last month</div>
+                        <h2 class="stat-value" id="dashBalance">₹0</h2>
+                        <p class="stat-label">User Wallet Float</p>
+                        <div class="stat-trend" id="dashRevenue">₹0 Revenue</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-header">
                             <div class="stat-icon orange"><i class="fas fa-server"></i></div>
                         </div>
-                        <h2 class="stat-value">99.9%</h2>
-                        <p class="stat-label">Server Uptime</p>
-                        <div class="stat-trend"><i class="fas fa-check"></i> All Systems Normal</div>
+                        <h2 class="stat-value" id="dashTxns">0</h2>
+                        <p class="stat-label">Total Transactions</p>
+                        <div class="stat-trend"><i class="fas fa-check"></i> System Stable</div>
                     </div>
                 </div>
 
@@ -680,6 +680,10 @@
                     const analytics = await analyticsRes.json();
                     document.getElementById('dashUsers').innerText = analytics.totalUsers.toLocaleString();
                     document.getElementById('dashBalance').innerText = '₹' + analytics.totalBalance.toLocaleString();
+                    document.getElementById('dashEarned').innerText = '₹' + analytics.totalEarned.toLocaleString();
+                    document.getElementById('dashBanned').innerText = analytics.totalBanned + ' Banned';
+                    document.getElementById('dashRevenue').innerText = '₹' + analytics.totalRevenue.toLocaleString() + ' Revenue';
+                    document.getElementById('dashTxns').innerText = analytics.totalTxns.toLocaleString();
                 }
 
                 if (usersRes.ok) {
@@ -742,25 +746,80 @@
                 const res = await fetch('/admin/users', { headers: { 'Authorization': `Bearer ${token}` } });
                 const users = await res.json();
                 document.getElementById('allUsersTable').innerHTML = users.map(u => `
-                    <tr>
+                    <tr style="${u.is_banned ? 'opacity: 0.5; background: rgba(255,0,0,0.05);' : ''}">
                         <td>#${u.uid.substr(0, 8)}...</td>
                         <td>
                             <div style="display:flex; align-items:center;">
-                                 <div class="user-avatar" style="background:${stringToColor(u.name || u.uid)}; display:flex; align-items:center; justify-content:center;">
-                                    ${(u.name || 'U').charAt(0).toUpperCase()}
+                                 <img class="user-avatar" src="${u.avatar || 'https://via.placeholder.com/40'}" onerror="this.src='https://ui-avatars.com/api/?name=${u.name || u.uid}'">
+                                <div style="display:flex; flex-direction:column;">
+                                    <span style="font-weight:600;">${u.name || 'User'}</span>
+                                    <small style="color:var(--text-secondary);">@${u.username || u.uid.substr(0,6)}</small>
                                 </div>
-                                <span style="margin-left:10px;">${u.name || 'User ' + u.uid.substr(0,6)}</span>
                             </div>
                         </td>
-                        <td>₹${(u.balance || 0).toLocaleString()}</td>
-                        <td><span class="status-badge active">Active</span></td>
                         <td>
-                            <button class="btn btn-sm" style="width:auto; padding: 5px 10px; font-size: 12px; margin-right:5px; background:var(--success-color);" onclick="openAddFundsModal('${u.uid}')">Wallet</button>
-                            <button class="btn btn-sm" style="width:auto; padding: 5px 10px; font-size: 12px; background:var(--danger-color);" onclick="deleteUser('${u.uid}')">Delete</button>
+                            <div style="font-size:12px; color:var(--text-secondary);">Wallet: ₹${(u.balance || 0).toLocaleString()}</div>
+                            <div style="font-size:12px; color:var(--success-color);">Earned: ₹${(u.earned_cash || 0).toLocaleString()}</div>
+                        </td>
+                        <td>
+                            <span class="status-badge ${u.is_banned ? 'offline' : 'active'}">
+                                ${u.is_banned ? 'BANNED' : 'ACTIVE'}
+                            </span>
+                        </td>
+                        <td>
+                            <div style="display:flex; gap:5px;">
+                                <button class="btn btn-sm" style="width:auto; padding: 5px 10px; font-size: 11px; background:var(--primary-color);" onclick="openEditUserModal('${u.uid}', '${u.name}', '${u.username}', ${u.balance}, ${u.earned_cash})">Edit</button>
+                                <button class="btn btn-sm" style="${u.is_banned ? 'background:var(--success-color)' : 'background:var(--warning-color)'}; width:auto; padding: 5px 10px; font-size: 11px;" onclick="toggleBan('${u.uid}', ${u.is_banned})">
+                                    ${u.is_banned ? 'Unban' : 'Ban'}
+                                </button>
+                                <button class="btn btn-sm" style="width:auto; padding: 5px 10px; font-size: 11px; background:var(--danger-color);" onclick="deleteUser('${u.uid}')">Delete</button>
+                            </div>
                         </td>
                     </tr>
                 `).join('');
             } catch (e) {}
+        }
+
+        async function toggleBan(uid, currentStatus) {
+            if(!confirm(`${currentStatus ? 'Unban' : 'Ban'} this user?`)) return;
+            try {
+                const res = await fetch('/admin/users/update', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ uid, isBanned: !currentStatus })
+                });
+                if(res.ok) loadUsers();
+            } catch(e) { alert('Action failed'); }
+        }
+
+        function openEditUserModal(uid, name, username, balance, earned) {
+            const newName = prompt("Update Name:", name);
+            const newUsername = prompt("Update Username:", username);
+            const newBalance = prompt("Update Wallet Balance:", balance);
+            const newEarned = prompt("Update Earned Cash:", earned);
+
+            if (newName !== null || newUsername !== null || newBalance !== null || newEarned !== null) {
+                updateUser(uid, {
+                    name: newName || undefined,
+                    username: newUsername || undefined,
+                    balance: newBalance !== null ? parseFloat(newBalance) : undefined,
+                    earnedCash: newEarned !== null ? parseFloat(newEarned) : undefined
+                });
+            }
+        }
+
+        async function updateUser(uid, data) {
+            try {
+                const res = await fetch('/admin/users/update', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ uid, ...data })
+                });
+                if(res.ok) {
+                    alert('User updated successfully');
+                    loadUsers();
+                }
+            } catch(e) { alert('Update failed'); }
         }
 
         // --- Wallet ---

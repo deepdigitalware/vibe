@@ -4,8 +4,9 @@ import android.app.Activity
 import android.content.Context
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import com.vibe.signaling.FirestoreSignaling
+import com.vibe.signaling.SocketSignaling
 import com.vibe.signaling.SignalingService
+import com.vibe.BuildConfig
 import com.vibe.util.createAnswer
 import com.vibe.util.createOffer
 import com.vibe.util.setLocalDescription
@@ -16,8 +17,8 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
 /**
- * Minimal local preview using Google WebRTC to demonstrate camera/mic on emulator/device.
- * Replace signaling/peer connection for real 1:1.
+ * Modern WebRTC Client using Socket.IO for low-latency signaling.
+ * Includes TURN server support for 100% connectivity.
  */
 class RtcClient(private val context: Context) {
 
@@ -31,13 +32,33 @@ class RtcClient(private val context: Context) {
     private var audioTrack: AudioTrack? = null
     private var localRenderer: SurfaceViewRenderer? = null
     private var remoteRenderer: SurfaceViewRenderer? = null
-    private var signaling: SignalingService? = null
+    private var signaling: SignalingService = SocketSignaling()
 
     // Reconnection state
     private var currentRole: SignalingService.Role? = null
     private var currentRoomId: String? = null
     private var reconnectAttempts: Int = 0
     private val maxReconnectAttempts: Int = 3
+
+    private val iceServers: List<PeerConnection.IceServer> by lazy {
+        val servers = mutableListOf<PeerConnection.IceServer>()
+        // Add default STUN
+        servers.add(PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer())
+        
+        // Add custom TURN from BuildConfig
+        val turnUrls = BuildConfig.TURN_URLS.split(";")
+        for (url in turnUrls) {
+            if (url.isNotEmpty()) {
+                servers.add(
+                    PeerConnection.IceServer.builder(url)
+                        .setUsername(BuildConfig.TURN_USERNAME)
+                        .setPassword(BuildConfig.TURN_PASSWORD)
+                        .createIceServer()
+                )
+            }
+        }
+        servers
+    }
 
     fun startPreview(localContainerId: Int, remoteContainerId: Int) {
         // Init WebRTC components
@@ -99,15 +120,21 @@ class RtcClient(private val context: Context) {
 
         // Start capture (choose sensible defaults for emulator/device)
         try {
-            videoCapturer?.startCapture(1280, 720, 30)
+            // Full HD if possible
+            videoCapturer?.startCapture(1920, 1080, 30)
         } catch (e: Exception) {
-            // Lower resolution fallback
-            videoCapturer?.startCapture(640, 480, 24)
+            try {
+                // HD fallback
+                videoCapturer?.startCapture(1280, 720, 30)
+            } catch (e2: Exception) {
+                // Lower resolution fallback
+                videoCapturer?.startCapture(640, 480, 24)
+            }
         }
 
         videoTrack = peerConnectionFactory!!.createVideoTrack("LOCAL_VIDEO", videoSource)
         videoTrack?.addSink(localRenderer)
-
+        
         // Create audio
         audioSource = peerConnectionFactory!!.createAudioSource(MediaConstraints())
         audioTrack = peerConnectionFactory!!.createAudioTrack("LOCAL_AUDIO", audioSource)
@@ -123,23 +150,23 @@ class RtcClient(private val context: Context) {
         // No remote track yet — to be wired with signaling/peer connection.
     }
 
+    fun switchCamera() {
+        (videoCapturer as? CameraVideoCapturer)?.switchCamera(null)
+    }
+
     private fun ensurePeerConnection(role: SignalingService.Role, roomId: String) {
         if (peerConnection != null) return
         val activity = context as? Activity ?: return
-        val iceServers = mutableListOf<PeerConnection.IceServer>()
-        // Add your TURN servers here
-        // iceServers.add(PeerConnection.IceServer.builder("turn:your-turn-server.com")
-        //     .setUsername("user")
-        //     .setPassword("password")
-        //     .createIceServer())
 
         val rtcConfig = PeerConnection.RTCConfiguration(iceServers).apply {
             sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
+            // Enable ICE gathering optimization
+            continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY
         }
-        signaling = FirestoreSignaling()
+
         peerConnection = peerConnectionFactory!!.createPeerConnection(rtcConfig, object : PeerConnection.Observer {
             override fun onIceCandidate(candidate: IceCandidate) {
-                signaling?.sendIceCandidate(roomId, role, candidate)
+                signaling.sendIceCandidate(roomId, role, candidate)
             }
             override fun onTrack(transceiver: RtpTransceiver) {
                 (transceiver.receiver.track() as? VideoTrack)?.addSink(remoteRenderer)
@@ -187,8 +214,8 @@ class RtcClient(private val context: Context) {
             pc.setLocalDescription(offer)
 
             // Save offer and listen for answer
-            signaling?.createRoom(roomId, offer.description)
-            signaling?.observeAnswer(roomId) { sdp ->
+            signaling.createRoom(roomId, offer.description)
+            signaling.observeAnswer(roomId) { sdp ->
                 val answer = SessionDescription(SessionDescription.Type.ANSWER, sdp)
                 GlobalScope.launch(Dispatchers.Main) {
                     pc.setRemoteDescription(answer)
@@ -196,7 +223,7 @@ class RtcClient(private val context: Context) {
             }
 
             // Listen for callee ICE
-            signaling?.observeRemoteIce(roomId, SignalingService.Role.Caller) { cand ->
+            signaling.observeRemoteIce(roomId, SignalingService.Role.Caller) { cand ->
                 pc.addIceCandidate(cand)
             }
         }
@@ -208,15 +235,15 @@ class RtcClient(private val context: Context) {
         val pc = peerConnection ?: return
 
         GlobalScope.launch(Dispatchers.Main) {
-            val offerSdp = signaling?.getOffer(roomId)
+            val offerSdp = signaling.getOffer(roomId)
             if (offerSdp.isNullOrEmpty()) return@launch
             pc.setRemoteDescription(SessionDescription(SessionDescription.Type.OFFER, offerSdp))
             val answer = pc.createAnswer(MediaConstraints())
             pc.setLocalDescription(answer)
-            signaling?.setAnswer(roomId, answer.description)
+            signaling.setAnswer(roomId, answer.description)
 
             // Listen for caller ICE
-            signaling?.observeRemoteIce(roomId, SignalingService.Role.Callee) { cand ->
+            signaling.observeRemoteIce(roomId, SignalingService.Role.Callee) { cand ->
                 pc.addIceCandidate(cand)
             }
         }
@@ -237,15 +264,15 @@ class RtcClient(private val context: Context) {
                     SignalingService.Role.Caller -> {
                         val offer = pc.createOffer(MediaConstraints())
                         pc.setLocalDescription(offer)
-                        signaling?.createRoom(roomId, offer.description)
+                        signaling.createRoom(roomId, offer.description)
                     }
                     SignalingService.Role.Callee -> {
-                        val offerSdp = signaling?.getOffer(roomId)
+                        val offerSdp = signaling.getOffer(roomId)
                         if (!offerSdp.isNullOrEmpty()) {
                             pc.setRemoteDescription(SessionDescription(SessionDescription.Type.OFFER, offerSdp))
                             val answer = pc.createAnswer(MediaConstraints())
                             pc.setLocalDescription(answer)
-                            signaling?.setAnswer(roomId, answer.description)
+                            signaling.setAnswer(roomId, answer.description)
                         }
                     }
                 }
@@ -256,6 +283,11 @@ class RtcClient(private val context: Context) {
 
     fun endCall() {
         reconnectAttempts = 0
+        currentRoomId?.let { roomId ->
+            GlobalScope.launch(Dispatchers.IO) {
+                signaling.clearRoom(roomId)
+            }
+        }
         try {
             videoCapturer?.stopCapture()
         } catch (_: Exception) { }

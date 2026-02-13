@@ -1,5 +1,7 @@
-version: '3.8'
+version: '3.9'
+
 services:
+  # Vibe Backend: Serves Landing Page (vibe.deepverse.cloud) & Admin Panel
   vibe-backend:
     build:
       context: ./server
@@ -10,7 +12,7 @@ services:
       - "9999:9999"
     environment:
       - PORT=9999
-      - DATABASE_URL=postgresql://vibenetwork:Deep%40Vibe@postgres:5432/vibenetwork
+      - DATABASE_URL=postgresql://vibenetwork:Deep%40Vibe@vibe-postgres:5432/vibenetwork
       - JWT_SECRET=${JWT_SECRET}
       - ADMIN_USER=${ADMIN_USER:-admin}
       - ADMIN_PASS=${ADMIN_PASS:-password}
@@ -25,6 +27,26 @@ services:
       timeout: 10s
       retries: 5
 
+  # LiveKit SFU: Serves Video Infrastructure (live.vibe.deepverse.cloud)
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: vibe-livekit
+    restart: always
+    network_mode: host
+    environment:
+      LIVEKIT_CONFIG: |
+        port: 7880
+        rtc:
+          tcp_port: 7881
+          udp_port: 7882
+          port_range_start: 50000
+          port_range_end: 60000
+          use_external_ip: true
+        keys:
+          DEV8F2D5C1A9B7642E3: "7d8f2a9c4e1b6d3f0a5c8b2e7f4d1a9c6b3e0f5a4c7d2b8e1f9a0c3d6b5e2f7"
+    # Removed healthcheck as livekit image is minimal and lacks curl/wget
+
+  # Database
   postgres:
     image: postgres:15-alpine
     container_name: vibe-postgres

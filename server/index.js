@@ -70,29 +70,37 @@ app.get('/health', (req, res) => {
     res.status(200).send('OK');
 });
 
-// Static Files
-app.use('/uploads', express.static(UPLOADS_DIR));
-app.use('/', express.static(PUBLIC_DIR));
+// --- Admin & Static Routes ---
 
-// Fallback for root if index.html issue occurs
-app.get('/', (req, res, next) => {
-    if (fs.existsSync(path.join(PUBLIC_DIR, 'index.html'))) {
-        res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
+// Serve Admin Panel (Priority)
+app.get('/admin', (req, res) => {
+    const adminPath = path.join(PUBLIC_DIR, 'admin.html');
+    if (fs.existsSync(adminPath)) {
+        res.sendFile(adminPath);
+    } else {
+        res.status(404).json({ error: 'Admin panel (admin.html) not found in public directory' });
+    }
+});
+
+// Serve Public Landing Page
+app.get('/', (req, res) => {
+    const indexPath = path.join(PUBLIC_DIR, 'index.html');
+    const adminPath = path.join(PUBLIC_DIR, 'admin.html');
+    
+    if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+    } else if (fs.existsSync(adminPath)) {
+        res.sendFile(adminPath);
     } else {
         res.send('Vibe Backend is Running');
     }
 });
 
-// GLOBAL CATCH-ALL (Prevents 404 for unknown routes during debug)
-app.use('*', (req, res) => {
-    console.log(`[404 Handler] Accessed: ${req.originalUrl}`);
-    res.status(200).json({
-        status: 'success',
-        message: 'Vibe Backend is Running (Catch-All)',
-        path: req.originalUrl,
-        timestamp: new Date().toISOString()
-    });
-});
+// Static Files (MUST be after specific routes like /admin)
+app.use('/uploads', express.static(UPLOADS_DIR));
+app.use(express.static(PUBLIC_DIR));
+
+
 
 // --- Chat Socket.IO Logic ---
 io.on('connection', (socket) => {
@@ -123,6 +131,20 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// File Upload Endpoint
+app.post('/api/upload', upload.single('file'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+    }
+    const fileUrl = `/uploads/${req.file.filename}`;
+    res.json({ 
+        url: fileUrl, 
+        filename: req.file.filename, 
+        mimetype: req.file.mimetype,
+        size: req.file.size 
+    });
+});
+
 // --- Auth Middleware ---
 function requireAuth(req, res, next) {
   const auth = req.headers.authorization || '';
@@ -136,9 +158,7 @@ function requireAuth(req, res, next) {
   }
 }
 
-// --- API Endpoints ---
-
-// Login
+// ---// API Endpoints start here
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
   if (username === ADMIN_USER && password === ADMIN_PASS) {
@@ -211,14 +231,61 @@ app.delete('/admin/users/:uid', requireAuth, async (req, res) => {
     }
 });
 
-// Admin: Analytics
+// Admin: Update User (Ban/Unban/Wallet)
+app.post('/admin/users/update', requireAuth, async (req, res) => {
+    const { uid, isBanned, balance, earnedCash, name, username } = req.body;
+    if (!uid) return res.status(400).json({ error: 'Missing UID' });
+
+    try {
+        const fields = [];
+        const values = [];
+        let idx = 1;
+
+        if (isBanned !== undefined) { fields.push(`is_banned = $${idx++}`); values.push(isBanned); }
+        if (balance !== undefined) { fields.push(`balance = $${idx++}`); values.push(balance); }
+        if (earnedCash !== undefined) { fields.push(`earned_cash = $${idx++}`); values.push(earnedCash); }
+        if (name) { fields.push(`name = $${idx++}`); values.push(name); }
+        if (username) { fields.push(`username = $${idx++}`); values.push(username); }
+
+        if (fields.length === 0) return res.json({ success: true, message: 'No changes' });
+
+        values.push(uid);
+        const query = `UPDATE users SET ${fields.join(', ')} WHERE uid = $${idx} RETURNING *`;
+        const result = await db.query(query, values);
+
+        io.emit('admin_update', { type: 'user_updated', user: result.rows[0] });
+        res.json({ success: true, user: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Admin: Analytics (Enhanced)
 app.get('/admin/analytics', requireAuth, async (req, res) => {
     try {
-        const usersResult = await db.query('SELECT COUNT(*) as total_users, SUM(balance) as total_balance FROM users');
-        const { total_users, total_balance } = usersResult.rows[0];
+        const stats = await db.query(`
+            SELECT 
+                COUNT(*) as total_users,
+                SUM(balance) as total_balance,
+                SUM(earned_cash) as total_earned,
+                COUNT(CASE WHEN is_banned THEN 1 END) as total_banned
+            FROM users
+        `);
+        
+        const txns = await db.query(`
+            SELECT 
+                COUNT(*) as total_txns,
+                SUM(CASE WHEN status = 'SUCCESS' THEN amount ELSE 0 END) as total_revenue
+            FROM transactions
+        `);
+
         res.json({
-            totalUsers: parseInt(total_users),
-            totalBalance: parseFloat(total_balance || 0)
+            totalUsers: parseInt(stats.rows[0].total_users || 0),
+            totalBalance: parseFloat(stats.rows[0].total_balance || 0),
+            totalEarned: parseFloat(stats.rows[0].total_earned || 0),
+            totalBanned: parseInt(stats.rows[0].total_banned || 0),
+            totalTxns: parseInt(txns.rows[0].total_txns || 0),
+            totalRevenue: parseFloat(txns.rows[0].total_revenue || 0)
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -295,6 +362,64 @@ app.post('/api/cms', requireAuth, async (req, res) => {
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+// --- Transaction Endpoints ---
+
+// Init Transaction (Before UPI)
+app.post('/api/transaction/init', requireAuth, async (req, res) => {
+    const { amount, description } = req.body;
+    const uid = req.user.uid || req.user.user; // Support both auth types if needed
+    
+    if (!amount || amount <= 0) return res.status(400).json({ error: 'Invalid amount' });
+
+    try {
+        const txnId = 'txn_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+        await db.query(
+            'INSERT INTO transactions (user_id, amount, type, description, date, status, txn_id) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+            [uid, amount, 'credit', description || 'Wallet Recharge', Date.now(), 'PENDING', txnId]
+        );
+        
+        io.emit('admin_update', { type: 'txn_pending', txnId, uid, amount });
+        res.json({ txnId, success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'DB Error' });
+    }
+});
+
+// Update Transaction (After UPI)
+app.post('/api/transaction/update', requireAuth, async (req, res) => {
+    const { txnId, status, approvalRef } = req.body;
+    const uid = req.user.uid || req.user.user;
+
+    try {
+        const result = await db.query('SELECT * FROM transactions WHERE txn_id = $1', [txnId]);
+        const txn = result.rows[0];
+
+        if (!txn) return res.status(404).json({ error: 'Transaction not found' });
+        if (txn.status === 'SUCCESS') return res.json({ success: true, message: 'Already success' });
+
+        const newStatus = status === 'SUCCESS' ? 'SUCCESS' : 'FAILED';
+        
+        await db.query(
+            'UPDATE transactions SET status = $1, approval_ref = $2 WHERE txn_id = $3',
+            [newStatus, approvalRef || '', txnId]
+        );
+
+        if (newStatus === 'SUCCESS') {
+            // Update User Balance
+            await db.query('UPDATE users SET balance = balance + $1 WHERE uid = $2', [txn.amount, txn.user_id]);
+            io.emit('admin_update', { type: 'txn_success', txnId, uid: txn.user_id, amount: txn.amount });
+        } else {
+            io.emit('admin_update', { type: 'txn_failed', txnId, uid: txn.user_id });
+        }
+
+        res.json({ success: true, status: newStatus });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'DB Error' });
     }
 });
 
@@ -472,18 +597,20 @@ app.get('/api/check-username', async (req, res) => {
     }
 });
 
-// Serve admin.html
-app.get('/admin', (_, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, 'admin.html'));
-});
-
-// Serve index.html
-app.get('/', (_, res) => {
-    if (fs.existsSync(path.join(PUBLIC_DIR, 'index.html'))) {
-        res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
-    } else {
-        res.send('Welcome to Vibe Public Site (Enterprise Backend Running)');
+// GLOBAL 404 Handler (MUST be the last route)
+app.use((req, res, next) => {
+    // If it's an API request, return JSON
+    if (req.url.startsWith('/api/') || req.url.startsWith('/admin/')) {
+        return res.status(404).json({
+            error: 'API Endpoint Not Found',
+            path: req.originalUrl
+        });
     }
+    // For everything else, if we already sent headers, don't do anything
+    if (res.headersSent) return next();
+    
+    // Otherwise, 404
+    res.status(404).send('404 - Not Found');
 });
 
 server.listen(PORT, () => {

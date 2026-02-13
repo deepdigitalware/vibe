@@ -13,6 +13,9 @@ android {
         versionCode 1
         versionName '1.0'
 
+        // Razorpay configuration
+        buildConfigField "String", "RAZORPAY_KEY_ID", '"rzp_test_your_key_here"'
+
         // Configure your merchant UPI details here
         buildConfigField "String", "UPI_ID", '"deepversestudio@oksbi"'
         buildConfigField "String", "PAYEE_NAME", '"Vibe"'
@@ -26,6 +29,11 @@ android {
         buildConfigField "String", "TURN_URLS", '"turn:your-turn.example.com:3478"'
         buildConfigField "String", "TURN_USERNAME", '"turn-user"'
         buildConfigField "String", "TURN_PASSWORD", '"turn-pass"'
+
+        // LiveKit Server Configuration
+        buildConfigField "String", "LIVEKIT_URL", '"https://live.vibe.deepverse.cloud"'
+        buildConfigField "String", "LIVEKIT_API_KEY", '"devkey"'
+        buildConfigField "String", "LIVEKIT_API_SECRET", '"secret"'
     }
 
     buildTypes {
@@ -61,7 +69,7 @@ dependencies {
     implementation 'com.google.android.gms:play-services-ads:24.7.0'
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.9.0'
+    implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'androidx.activity:activity-ktx:1.8.1'
     implementation 'androidx.fragment:fragment-ktx:1.6.2'
@@ -70,7 +78,10 @@ dependencies {
     implementation 'androidx.navigation:navigation-fragment-ktx:2.7.5'
     implementation 'androidx.navigation:navigation-ui-ktx:2.7.5'
 
-    // Optional: WebRTC library (community republish to Maven Central)
+    // LiveKit SDK for reliable VPS-based video calling
+    implementation 'io.livekit:livekit-android:2.4.0'
+    
+    // WebRTC library (Required for legacy components and as a base for LiveKit)
     implementation 'com.infobip:google-webrtc:1.0.39079'
 
     // Firebase (FireStore/Auth) for signaling — will be enabled when configured
@@ -87,8 +98,27 @@ dependencies {
     }
     
     // Country Code Picker
-    implementation 'com.hbb20:ccp:2.5.0'
+    implementation 'com.hbb20:ccp:2.7.3'
+
+    // Telegram-like Gallery Picker (TedImagePicker)
+    implementation 'io.github.ParkSangGwon:tedimagepicker:1.6.1'
+
+    // Razorpay Checkout for Payment Gateway Compliance
+    implementation 'com.razorpay:checkout:1.6.40'
 
     // Google Sign-In
     implementation 'com.google.android.gms:play-services-auth:20.7.0'
+
+    // Glide for image loading
+    implementation 'com.github.bumptech.glide:glide:4.16.0'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'
+    
+    // Palette for adaptive colors
+    implementation 'androidx.palette:palette-ktx:1.0.0'
+
+    // PhotoView for zooming
+    implementation 'com.github.chrisbanes:PhotoView:2.3.0'
+
+    // SwipeRefreshLayout
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
 }

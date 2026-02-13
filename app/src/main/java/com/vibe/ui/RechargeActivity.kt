@@ -13,73 +13,45 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.lifecycle.lifecycleScope
+import com.razorpay.Checkout
+import com.razorpay.PaymentResultListener
 import kotlinx.coroutines.launch
 import com.vibe.R
+import com.vibe.BuildConfig
+import org.json.JSONObject
 
-class RechargeActivity : AppCompatActivity() {
+class RechargeActivity : AppCompatActivity(), PaymentResultListener {
 
     data class RechargeOption(val payAmount: Int, val getAmount: Int, val bonus: Int)
 
     private val options = listOf(
+        RechargeOption(50, 60, 10),
         RechargeOption(100, 120, 20),
         RechargeOption(200, 250, 50),
-        RechargeOption(500, 600, 100),
-        RechargeOption(1000, 1250, 250)
+        RechargeOption(500, 700, 200),
+        RechargeOption(1000, 1500, 500)
     )
 
-    private val upiLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == RESULT_OK || result.resultCode == 11) {
-            val data = result.data
-            val response = data?.getStringExtra("response") ?: ""
-            // Parse response (Google Pay/PhonePe often return data in extras)
-            handleUpiResponse(response)
-        } else {
-            // Some apps return RESULT_CANCELED even on success or failure, check data
-            val data = result.data
-            val response = data?.getStringExtra("response") ?: ""
-            if (response.isNotEmpty()) {
-                handleUpiResponse(response)
-            } else {
-                showDialog("Payment Cancelled", "Transaction cancelled or failed.")
-            }
-        }
+    override fun onPaymentSuccess(razorpayPaymentId: String?) {
+        verifyAndAddFunds("SUCCESS", razorpayPaymentId)
     }
 
-    private fun handleUpiResponse(response: String) {
-        // Response format: txnId=...&responseCode=...&Status=...&txnRef=...
-        // Status can be SUCCESS, FAILURE, SUBMITTED
-        val params = response.split("&").associate {
-            val parts = it.split("=")
-            if (parts.size == 2) parts[0].lowercase() to parts[1] else "" to ""
-        }
-
-        val status = params["status"]?.uppercase() ?: ""
-        val txnId = params["txnid"]
-        val approvalRef = params["txnref"]
-
-        if (status == "SUCCESS") {
-             // Simulate server verification
-             verifyAndAddFunds(txnId, approvalRef)
-        } else if (status == "SUBMITTED") {
-            showDialog("Payment Pending", "Your payment is pending. It will be updated once approved.")
-        } else {
-            showDialog("Payment Failed", "Transaction failed. Please try again.")
-        }
+    override fun onPaymentError(code: Int, response: String?) {
+        showDialog("Payment Failed", "Error $code: $response")
     }
 
-    private fun verifyAndAddFunds(txnId: String?, ref: String?) {
-        // In a real app, send txnId to server.
-        // For this enterprise demo, we simulate the server call or call the insecure 'add' endpoint if available.
-        // We'll trust the client for now to demonstrate the "Real-time Update"
-        
+    private fun verifyAndAddFunds(status: String, ref: String?) {
         val wallet = com.vibe.wallet.WalletManager(this)
-        // Find the amount we just tried to pay
-        // We stored it in 'lastOption'
-        val amount = lastOption?.getAmount ?: 0
-        if (amount > 0) {
-            lifecycleScope.launch {
-                wallet.addBalanceRupees(amount.toDouble())
-                showDialog("Payment Successful", "Added ₹$amount to your wallet!", true)
+        val txnId = currentTxnId ?: return
+        
+        lifecycleScope.launch {
+            val success = wallet.updateTransaction(txnId, status, ref)
+            if (success && status == "SUCCESS") {
+                showDialog("Payment Successful", "Added funds to your wallet!", true)
+            } else if (status == "PENDING") {
+                showDialog("Payment Pending", "Transaction submitted. Balance will update once approved.", true)
+            } else {
+                showDialog("Payment Failed", "Transaction failed or cancelled.")
             }
         }
     }
@@ -95,53 +67,142 @@ class RechargeActivity : AppCompatActivity() {
     }
 
     private var lastOption: RechargeOption? = null
+    private lateinit var tvWalletBalance: TextView
+    private lateinit var tvEarnedCash: TextView
+    private lateinit var btnWithdraw: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_recharge)
 
+        tvWalletBalance = findViewById(R.id.tvWalletBalance)
+        tvEarnedCash = findViewById(R.id.tvEarnedCash)
+        btnWithdraw = findViewById(R.id.btnWithdraw)
+
+        findViewById<View>(R.id.btnBack).setOnClickListener {
+            finish()
+        }
+
         val rv = findViewById<RecyclerView>(R.id.rvRechargeOptions)
         rv.layoutManager = LinearLayoutManager(this)
         rv.adapter = RechargeAdapter(options) { opt ->
             lastOption = opt
-            initiateUpiPayment(opt)
+            initiateRazorpayPayment(opt)
+        }
+        
+        btnWithdraw.setOnClickListener {
+            handleWithdrawal()
+        }
+
+        // Custom Recharge Logic
+        val etCustomAmount = findViewById<android.widget.EditText>(R.id.etCustomAmount)
+        val btnCustomPay = findViewById<Button>(R.id.btnCustomPay)
+        
+        btnCustomPay.setOnClickListener {
+            val amountStr = etCustomAmount.text.toString().trim()
+            if (amountStr.isNotEmpty()) {
+                val amount = amountStr.toIntOrNull() ?: 0
+                if (amount >= 10) {
+                    val opt = RechargeOption(amount, amount, 0)
+                    lastOption = opt
+                    initiateRazorpayPayment(opt)
+                } else {
+                    etCustomAmount.error = "Minimum recharge is ₹10"
+                }
+            }
+        }
+
+        updateBalances()
+        loadAds()
+        Checkout.preload(applicationContext)
+    }
+
+    private fun updateBalances() {
+        val wallet = com.vibe.wallet.WalletManager(this)
+        lifecycleScope.launch {
+            val balance = wallet.getBalanceRupees()
+            tvWalletBalance.text = "₹${String.format("%.2f", balance)}"
+            
+            // For demo, earned cash is a fraction of balance or separate pref
+            // In real app, this would come from a separate API field
+            val prefs = getSharedPreferences("vibe_prefs", Context.MODE_PRIVATE)
+            val earned = prefs.getFloat("earned_cash", 0f).toDouble()
+            tvEarnedCash.text = "₹${String.format("%.2f", earned)}"
         }
     }
 
-    private fun initiateUpiPayment(opt: RechargeOption) {
-        // UPI Intent
-        // Replace 'pay@vibe' with actual UPI ID if available
-        val upiId = "pay@vibe" 
-        val name = "Vibe Network"
-        val note = "Recharge ${opt.payAmount}"
-        val amount = opt.payAmount.toString()
-
-        val uri = Uri.parse("upi://pay")
-            .buildUpon()
-            .appendQueryParameter("pa", upiId)
-            .appendQueryParameter("pn", name)
-            .appendQueryParameter("tn", note)
-            .appendQueryParameter("am", amount)
-            .appendQueryParameter("cu", "INR")
-            .build()
-
-        val intent = Intent(Intent.ACTION_VIEW)
-        intent.data = uri
+    private fun handleWithdrawal() {
+        val prefs = getSharedPreferences("vibe_prefs", Context.MODE_PRIVATE)
+        val earned = prefs.getFloat("earned_cash", 0f)
         
-        // Show chooser
-        val chooser = Intent.createChooser(intent, "Pay with")
-        if (intent.resolveActivity(packageManager) != null) {
-            upiLauncher.launch(intent)
-        } else {
-             // Emulator fallback
-             androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("No UPI App Found")
-                .setMessage("You are on an emulator. Simulate SUCCESSFUL payment of ₹${opt.payAmount}?")
-                .setPositiveButton("Simulate Success") { _, _ ->
-                     verifyAndAddFunds("SIMULATED_TXN", "SIM_REF")
-                }
-                .setNegativeButton("Cancel", null)
-                .show()
+        if (earned < 1000) {
+            showDialog("Minimum Withdrawal", "You need at least ₹1000 in earned cash to withdraw. Current: ₹${String.format("%.2f", earned)}")
+            return
+        }
+
+        // Proceed with withdrawal request
+        lifecycleScope.launch {
+            val wallet = com.vibe.wallet.WalletManager(this@RechargeActivity)
+            val response = wallet.requestWithdrawal(earned.toDouble())
+            if (response.success) {
+                // Reset earned cash locally on success
+                prefs.edit().putFloat("earned_cash", 0f).apply()
+                updateBalances()
+                showDialog("Success", "Withdrawal request of ₹$earned submitted successfully!")
+            } else {
+                showDialog("Withdrawal Failed", response.message ?: "Unknown error occurred")
+            }
+        }
+    }
+
+    private fun loadAds() {
+        try {
+            val adRequest = com.google.android.gms.ads.AdRequest.Builder().build()
+            findViewById<com.google.android.gms.ads.AdView>(R.id.adViewTop).loadAd(adRequest)
+            findViewById<com.google.android.gms.ads.AdView>(R.id.adViewBottom).loadAd(adRequest)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    // Store current Txn ID
+    private var currentTxnId: String? = null
+
+    private fun initiateRazorpayPayment(opt: RechargeOption) {
+        val wallet = com.vibe.wallet.WalletManager(this)
+        
+        lifecycleScope.launch {
+            // 1. Init Transaction on Server
+            val txnId = wallet.initTransaction(opt.getAmount.toDouble(), "Recharge ${opt.payAmount}")
+            if (txnId == null) {
+                showDialog("Error", "Could not initiate transaction. Check internet.")
+                return@launch
+            }
+            currentTxnId = txnId
+
+            // 2. Launch Razorpay Checkout
+            val checkout = Checkout()
+            checkout.setKeyID(BuildConfig.RAZORPAY_KEY_ID)
+            
+            try {
+                val options = JSONObject()
+                options.put("name", "Vibe")
+                options.put("description", "Wallet Recharge")
+                options.put("image", "https://vibe.deepverse.cloud/logo.png")
+                options.put("currency", "INR")
+                options.put("amount", opt.payAmount * 100) // Razorpay expects amount in paise
+                options.put("prefill.email", "user@example.com")
+                options.put("prefill.contact", "9999999999")
+                options.put("theme.color", "#6200EE")
+                
+                // Important for Google Play Compliance: 
+                // Enable 'User Choice Billing' compatible payment methods
+                options.put("send_sms_hash", true)
+                
+                checkout.open(this@RechargeActivity, options)
+            } catch (e: Exception) {
+                showDialog("Error", "Error in starting Razorpay: ${e.message}")
+            }
         }
     }
 

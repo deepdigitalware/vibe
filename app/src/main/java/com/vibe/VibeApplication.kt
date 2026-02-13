@@ -17,6 +17,9 @@ class VibeApplication : Application() {
         super.onCreate()
         instance = this
         AdManager.initialize(this)
-        AdManager.loadAppOpenAd(this, "ca-app-pub-2509091968835675/8562719984")
+        com.vibe.util.NotificationHelper.createNotificationChannel(this)
+        com.vibe.util.SocketManager.init(this)
+        // Load App Open Ad using ID from strings.xml
+        AdManager.loadAppOpenAd(this, getString(R.string.admob_app_open_id))
     }
 }

@@ -28,6 +28,8 @@ import okhttp3.RequestBody
 import com.vibe.util.FileUtil
 import com.vibe.api.ProfileUpdate
 import com.vibe.api.SessionManager
+import com.vibe.util.UsernameGenerator
+import gun0912.tedimagepicker.builder.TedImagePicker
 
 class EditProfileFragment : Fragment() {
 
@@ -51,32 +53,32 @@ class EditProfileFragment : Fragment() {
     private var coverUrl: String? = null
     private var selectedImageType: String = "" // "profile", "cover", "gallery"
 
-    private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        uri?.let {
-            // Show immediately
-            when (selectedImageType) {
-                "profile" -> ivProfile.setImageURI(it)
-                "cover" -> ivCover.setImageURI(it)
-                "gallery" -> {
-                    galleryList.add(it)
-                    galleryAdapter.notifyItemInserted(galleryList.size - 1)
+    private fun openImagePicker() {
+        TedImagePicker.with(requireContext())
+            .start { uri ->
+                // Show immediately
+                when (selectedImageType) {
+                    "profile" -> ivProfile.setImageURI(uri)
+                    "cover" -> ivCover.setImageURI(uri)
+                    "gallery" -> {
+                        galleryList.add(uri)
+                        galleryAdapter.notifyItemInserted(galleryList.size - 1)
+                    }
+                }
+                
+                // Upload in background
+                uploadImage(uri) { url ->
+                     when (selectedImageType) {
+                        "profile" -> profileUrl = url
+                        "cover" -> coverUrl = url
+                        "gallery" -> galleryUrls.add(url)
+                    }
                 }
             }
-            
-            // Upload in background
-            uploadImage(it) { url ->
-                 when (selectedImageType) {
-                    "profile" -> profileUrl = url
-                    "cover" -> coverUrl = url
-                    "gallery" -> galleryUrls.add(url)
-                }
-            }
-        }
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_edit_profile, container, false)
-        
         ivCover = view.findViewById(R.id.ivCover)
         ivProfile = view.findViewById(R.id.ivProfile)
         etName = view.findViewById(R.id.etName)
@@ -94,6 +96,16 @@ class EditProfileFragment : Fragment() {
         loadCurrentData()
 
         return view
+    }
+
+    override fun onResume() {
+        super.onResume()
+        requireActivity().findViewById<View>(R.id.bottomNavigation)?.visibility = View.GONE
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        requireActivity().findViewById<View>(R.id.bottomNavigation)?.visibility = View.VISIBLE
     }
 
     private fun setupGallery() {
@@ -131,17 +143,17 @@ class EditProfileFragment : Fragment() {
     private fun setupListeners() {
         btnEditCover.setOnClickListener {
             selectedImageType = "cover"
-            pickImage.launch("image/*")
+            openImagePicker()
         }
 
         btnEditProfilePic.setOnClickListener {
             selectedImageType = "profile"
-            pickImage.launch("image/*")
+            openImagePicker()
         }
 
         btnAddPhoto.setOnClickListener {
             selectedImageType = "gallery"
-            pickImage.launch("image/*")
+            openImagePicker()
         }
 
         btnSave.setOnClickListener {

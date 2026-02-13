@@ -12,6 +12,8 @@ import com.vibe.R
 import com.vibe.utils.showSnackbar
 import kotlinx.coroutines.*
 import kotlin.random.Random
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdView
 
 class ProfileFragment : Fragment() {
 
@@ -23,6 +25,9 @@ class ProfileFragment : Fragment() {
 
         val rvPhotos = view.findViewById<RecyclerView>(R.id.rvPhotos)
         val btnEditProfile = view.findViewById<View>(R.id.btnEditProfile)
+        val btnRecharge = view.findViewById<View>(R.id.btnRecharge)
+        val btnBalance = view.findViewById<TextView>(R.id.btnBalance)
+        
         val tvLikesCount = view.findViewById<TextView>(R.id.tvLikesCount)
         val tvMatchesCount = view.findViewById<TextView>(R.id.tvMatchesCount)
         val tvViewsCount = view.findViewById<TextView>(R.id.tvViewsCount)
@@ -46,6 +51,18 @@ class ProfileFragment : Fragment() {
                 .commit()
         }
 
+        val walletListener = View.OnClickListener {
+            startActivity(android.content.Intent(context, RechargeActivity::class.java))
+        }
+        
+        btnRecharge.setOnClickListener(walletListener)
+        btnBalance.setOnClickListener(walletListener)
+
+        // Set Balance
+        val prefs = requireContext().getSharedPreferences("vibe_prefs", android.content.Context.MODE_PRIVATE)
+        val balance = prefs.getFloat("wallet_balance", 0f)
+        btnBalance.text = "Credit: ₹${balance.toInt()}"
+
         // Initialize Stats
         tvLikesCount.text = "125"
         tvMatchesCount.text = "45"
@@ -53,6 +70,13 @@ class ProfileFragment : Fragment() {
 
         // Simulate Real-time Views
         startRealtimeViewsSimulation(tvViewsCount)
+
+        // Load Banners
+        val adViewSmart = view.findViewById<AdView>(R.id.adViewSmart)
+        val adViewLarge = view.findViewById<AdView>(R.id.adViewLarge)
+        val bannerRequest = AdRequest.Builder().build()
+        adViewSmart.loadAd(bannerRequest)
+        adViewLarge.loadAd(bannerRequest)
 
         return view
     }

@@ -10,23 +10,17 @@
         android:id="@+id/remoteContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#101010">
-        
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Remote Video"
-            android:textColor="#FFFFFF"
-            android:layout_gravity="center" />
-    </FrameLayout>
+        android:background="#101010" />
 
     <!-- Local Video (PiP / Overlay) -->
     <androidx.cardview.widget.CardView
+        android:id="@+id/cvLocalView"
         android:layout_width="120dp"
         android:layout_height="160dp"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="100dp"
         app:cardCornerRadius="12dp"
+        app:cardBackgroundColor="#202020"
         app:cardElevation="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
@@ -34,8 +28,7 @@
         <FrameLayout
             android:id="@+id/localContainer"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#202020">
+            android:layout_height="match_parent">
             
             <TextView
                 android:layout_width="wrap_content"
@@ -43,8 +36,86 @@
                 android:text="You"
                 android:textColor="#FFFFFF"
                 android:layout_gravity="center" />
+                
+            <ImageView
+                android:id="@+id/btnSwitchCamera"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_flip_camera"
+                android:layout_gravity="top|end"
+                android:layout_margin="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true" />
         </FrameLayout>
     </androidx.cardview.widget.CardView>
+
+    <!-- Ringing Overlay -->
+    <LinearLayout
+        android:id="@+id/layoutRinging"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#121212"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:elevation="10dp"
+        android:visibility="visible">
+
+        <ImageView
+            android:id="@+id/ivRemoteAvatar"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_marginBottom="16dp"
+            android:src="@drawable/ic_profile"
+            app:tint="#FFFFFF" />
+
+        <TextView
+            android:id="@+id/tvCallerName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ringing..."
+            android:textColor="#FFFFFF"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tvCallStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Waiting for answer..."
+            android:textColor="#BBBBBB"
+            android:textSize="16sp"
+            android:layout_marginBottom="48dp" />
+
+        <LinearLayout
+            android:id="@+id/layoutCallActions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnDeclineCall"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_marginEnd="40dp"
+                android:background="@drawable/ic_video_call"
+                android:backgroundTint="#F44336"
+                app:cornerRadius="32dp" />
+
+            <Button
+                android:id="@+id/btnAnswerCall"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:background="@drawable/ic_video_call"
+                android:backgroundTint="#4CAF50"
+                app:cornerRadius="32dp"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+    </LinearLayout>
 
     <!-- Controls Overlay -->
     <LinearLayout
@@ -59,7 +130,7 @@
             android:id="@+id/tvBlockCountdown"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_gradient"
+            android:background="@drawable/bg_dark_transparent_rounded"
             android:paddingHorizontal="16dp"
             android:paddingVertical="8dp"
             android:text="Next charge in: 02:00"

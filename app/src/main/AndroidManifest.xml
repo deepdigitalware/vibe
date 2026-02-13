@@ -6,6 +6,15 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application
         android:name=".VibeApplication"
@@ -15,9 +24,10 @@
         android:theme="@style/Theme.Vibe"
         android:usesCleartextTraffic="true">
 
+        <!-- AdMob App ID -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-2509091968835675~7270057297"/>
+            android:value="@string/admob_app_id" />
 
         <activity
             android:name="com.vibe.ui.SplashActivity"
@@ -32,7 +42,14 @@
             android:name="com.vibe.ui.LoginActivity"
             android:exported="false" />
 
-        <activity android:name="com.vibe.ui.CallActivity" />
+        <activity
+            android:name="com.vibe.ui.CallActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <activity
+            android:name="com.vibe.ui.FullScreenImageActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
         <activity android:name="com.vibe.ui.RechargeActivity" />
 
         <activity android:name="com.vibe.ui.MainActivity" android:exported="true" />

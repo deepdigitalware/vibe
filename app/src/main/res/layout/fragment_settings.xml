@@ -22,7 +22,7 @@
         android:layout_height="0dp"
         android:layout_marginTop="16dp"
         app:layout_constraintTop_toBottomOf="@id/tvSettingsTitle"
-        app:layout_constraintBottom_toBottomOf="parent">
+        app:layout_constraintBottom_toTopOf="@id/bannerContainer">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -35,7 +35,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Discovery"
-                android:textColor="@color/secondaryColor"
+                android:textColor="#FFE00E"
                 android:textStyle="bold"
                 android:layout_marginBottom="8dp" />
 
@@ -72,6 +72,7 @@
                             android:layout_height="wrap_content"
                             android:text="Men"
                             android:textColor="@color/onSurface"
+                            android:buttonTint="#FFE00E"
                             android:layout_weight="1"/>
 
                         <RadioButton
@@ -80,6 +81,7 @@
                             android:layout_height="wrap_content"
                             android:text="Women"
                             android:textColor="@color/onSurface"
+                            android:buttonTint="#FFE00E"
                             android:layout_weight="1"/>
 
                         <RadioButton
@@ -88,6 +90,7 @@
                             android:layout_height="wrap_content"
                             android:text="Everyone"
                             android:textColor="@color/onSurface"
+                            android:buttonTint="#FFE00E"
                             android:layout_weight="1"
                             android:checked="true"/>
                     </RadioGroup>
@@ -110,7 +113,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="50 km"
-                        android:textColor="@color/secondaryColor"
+                        android:textColor="#FFE00E"
                         android:layout_marginTop="4dp"/>
 
                     <SeekBar
@@ -119,6 +122,8 @@
                         android:layout_height="wrap_content"
                         android:max="100"
                         android:progress="50"
+                        android:progressTint="#FFE00E"
+                        android:thumbTint="#FFE00E"
                         android:layout_marginTop="8dp"/>
 
                 </LinearLayout>
@@ -129,7 +134,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="App Settings"
-                android:textColor="@color/secondaryColor"
+                android:textColor="#FFE00E"
                 android:textStyle="bold"
                 android:layout_marginBottom="8dp" />
 
@@ -157,7 +162,7 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@drawable/ic_bell"
-                            app:tint="@color/secondaryColor"/>
+                            app:tint="#FFE00E"/>
 
                         <TextView
                             android:layout_width="0dp"
@@ -172,7 +177,9 @@
                             android:id="@+id/switchNotifications"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:checked="true"/>
+                            android:checked="true"
+                            android:thumbTint="#FFE00E"
+                            android:trackTint="#77FFE00E"/>
                     </LinearLayout>
 
                     <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#333333"/>
@@ -192,7 +199,7 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@android:drawable/ic_delete"
-                            app:tint="@color/secondaryColor"/>
+                            app:tint="#FFE00E"/>
 
                         <TextView
                             android:layout_width="0dp"
@@ -209,18 +216,80 @@
                             android:src="@drawable/ic_arrow_right"
                             app:tint="#888888"/>
                     </LinearLayout>
+                    
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#333333"/>
+
+                    <!-- Share App -->
+                    <LinearLayout
+                        android:id="@+id/btnShareApp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="16dp"
+                        android:gravity="center_vertical"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_share"
+                            app:tint="#FFE00E"/>
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="16dp"
+                            android:text="Share App"
+                            android:textColor="@color/onSurface"
+                            android:textSize="16sp"/>
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_arrow_right"
+                            app:tint="#888888"/>
+                    </LinearLayout>
+                    
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#333333"/>
+
+                    <!-- Get In Touch -->
+                    <LinearLayout
+                        android:id="@+id/btnGetInTouch"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="16dp"
+                        android:gravity="center_vertical"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_chats"
+                        app:tint="#FFE00E"/>
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="16dp"
+                            android:text="Get In Touch"
+                            android:textColor="@color/onSurface"
+                            android:textSize="16sp"/>
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_arrow_right"
+                            app:tint="#888888"/>
+                    </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
             <!-- Account -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Account"
-                android:textColor="@color/secondaryColor"
-                android:textStyle="bold"
-                android:layout_marginBottom="8dp" />
-
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -247,7 +316,7 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@drawable/ic_logout"
-                            app:tint="#F44336"/>
+                            app:tint="@color/onSurface"/>
 
                         <TextView
                             android:layout_width="0dp"
@@ -255,7 +324,7 @@
                             android:layout_weight="1"
                             android:layout_marginStart="16dp"
                             android:text="Logout"
-                            android:textColor="#F44336"
+                            android:textColor="@color/onSurface"
                             android:textSize="16sp"/>
                     </LinearLayout>
                 </LinearLayout>
@@ -269,12 +338,6 @@
                 android:gravity="center"
                 android:layout_marginBottom="32dp">
 
-                <ImageView
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:src="@drawable/ic_splash_logo"
-                app:tint="@color/secondaryColor"/>
-
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -287,7 +350,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Version 1.0.0"
+                    android:text="v 1.0.0 beta"
                     android:textColor="#888888"
                     android:textSize="12sp"
                     android:layout_marginTop="4dp"/>
@@ -295,5 +358,34 @@
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
+
+    <LinearLayout
+        android:id="@+id/bannerContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="#1E1E1E"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <com.google.android.gms.ads.AdView
+            xmlns:ads="http://schemas.android.com/apk/res-auto"
+            android:id="@+id/adViewSmart"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            ads:adSize="SMART_BANNER"
+            ads:adUnitId="@string/banner_ad_unit_id" />
+
+        <com.google.android.gms.ads.AdView
+            xmlns:ads="http://schemas.android.com/apk/res-auto"
+            android:id="@+id/adViewLarge"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            ads:adSize="LARGE_BANNER"
+            ads:adUnitId="@string/banner_ad_unit_id" />
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

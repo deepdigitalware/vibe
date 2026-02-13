@@ -1,5 +1,8 @@
 .gradle/
 .gradle-home/
+.gradle_home/
+.my_gradle_home/
+android/.gradle_home/
 .gradle_local/
 build/
 node_modules/

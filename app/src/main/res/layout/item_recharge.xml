@@ -35,13 +35,20 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tvAmount" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnPay"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Pay via UPI"
+            app:icon="@drawable/ic_upi"
+            app:iconGravity="textStart"
+            app:iconPadding="8dp"
+            app:iconTint="@android:color/white"
             android:backgroundTint="@color/primaryColor"
-            android:textColor="@android:color/white"
+            android:textColor="@android:color/black"
+            android:textStyle="bold"
+            android:textAllCaps="false"
+            app:cornerRadius="24dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />

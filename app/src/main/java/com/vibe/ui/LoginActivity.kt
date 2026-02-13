@@ -74,6 +74,7 @@ class LoginActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        supportActionBar?.hide() // Hide the default Action Bar for modern look
         setContentView(R.layout.activity_login)
 
         prefs = getSharedPreferences("vibe_prefs", Context.MODE_PRIVATE)
@@ -101,6 +102,17 @@ class LoginActivity : AppCompatActivity() {
 
         initViews()
         setupListeners()
+        loadAds()
+    }
+
+    private fun loadAds() {
+        try {
+            val adRequest = com.google.android.gms.ads.AdRequest.Builder().build()
+            findViewById<com.google.android.gms.ads.AdView>(R.id.adViewTop).loadAd(adRequest)
+            findViewById<com.google.android.gms.ads.AdView>(R.id.adViewBottom).loadAd(adRequest)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun initViews() {
@@ -248,12 +260,16 @@ class LoginActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
+                val deviceId = android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ANDROID_ID)
                 val response = withContext(Dispatchers.IO) {
+                    val randomUsername = com.vibe.util.UsernameGenerator.generate()
                     ApiClient.api.loginApp(
                         LoginAppRequest(
                             uid = user.uid,
                             phone = user.phoneNumber,
-                            email = user.email
+                            email = user.email,
+                            username = randomUsername,
+                            deviceId = deviceId
                         )
                     ).execute()
                 }
@@ -264,7 +280,7 @@ class LoginActivity : AppCompatActivity() {
                     body.user?.id?.let { SessionManager.saveUserId(it) }
                     
                     withContext(Dispatchers.Main) {
-                        showSnackbar("Connected!")
+                        // showSnackbar("Connected!")
                         navigateToMain()
                     }
                 } else {

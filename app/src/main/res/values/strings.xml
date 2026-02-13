@@ -2,4 +2,15 @@
 <resources>
     <string name="app_name">Vibe</string>
     <string name="default_web_client_id">960325915240-tg8ff5udgj5acpetj3gr4k82389rdreq.apps.googleusercontent.com</string>
+    
+    <!-- AdMob Real Unit IDs (Replace with your own from AdMob Dashboard) -->
+    <string name="admob_app_id">ca-app-pub-2509091968835675~7270057297</string>
+    <string name="admob_app_open_id">ca-app-pub-2509091968835675/8562719984</string>
+    <string name="admob_banner_id">ca-app-pub-2509091968835675/2560418411</string>
+    <string name="banner_ad_unit_id">ca-app-pub-2509091968835675/2560418411</string>
+    <string name="admob_interstitial_id">ca-app-pub-2509091968835675/6040736105</string>
+    <string name="interstitial_ad_unit_id">ca-app-pub-2509091968835675/6040736105</string>
+    
+    <string name="upi_vpa">deepversestudio@oksbi</string>
+    <string name="upi_payee_name">DeepVerse Studio</string>
 </resources>
