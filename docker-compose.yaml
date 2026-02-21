@@ -12,7 +12,7 @@ services:
       - "9999:9999"
     environment:
       - PORT=9999
-      - DATABASE_URL=postgresql://vibenetwork:Deep%40Vibe@postgres:5432/vibenetwork
+      - DATABASE_URL=postgres://vibe:Deep%40Vibe@zgosgkss4kg4gs8gcgscgcs4:5432/vibe
       - JWT_SECRET=${JWT_SECRET}
       - ADMIN_USER=${ADMIN_USER:-admin}
       - ADMIN_PASS=${ADMIN_PASS:-password}
