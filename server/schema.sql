@@ -12,7 +12,9 @@ CREATE TABLE IF NOT EXISTS users (
     gallery JSONB DEFAULT '[]',
     role TEXT DEFAULT 'user',
     is_banned BOOLEAN DEFAULT FALSE,
-    earned_cash DECIMAL(10, 2) DEFAULT 0
+    earned_cash DECIMAL(10, 2) DEFAULT 0,
+    device_id TEXT,
+    welcome_bonus_claimed BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS cms (
@@ -37,6 +39,13 @@ CREATE TABLE IF NOT EXISTS uploads (
     filename TEXT,
     url TEXT,
     created_at BIGINT
+);
+
+CREATE TABLE IF NOT EXISTS favourites (
+    user_id TEXT REFERENCES users(uid) ON DELETE CASCADE,
+    favourite_id TEXT REFERENCES users(uid) ON DELETE CASCADE,
+    created_at BIGINT,
+    PRIMARY KEY (user_id, favourite_id)
 );
 
 -- Insert default CMS data if not exists (using ON CONFLICT DO NOTHING)

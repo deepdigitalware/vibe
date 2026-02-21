@@ -17,7 +17,7 @@ class FullScreenImageActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_fullscreen_image)
 
-        val images = intent.getIntegerArrayListExtra("images") ?: arrayListOf()
+        val images = intent.getStringArrayListExtra("images") ?: arrayListOf()
         val startPosition = intent.getIntExtra("position", 0)
 
         val viewPager = findViewById<ViewPager2>(R.id.viewPager)
@@ -55,7 +55,7 @@ class FullScreenImageActivity : AppCompatActivity() {
         btnRight.visibility = if (startPosition < images.size - 1) View.VISIBLE else View.GONE
     }
 
-    class FullScreenAdapter(private val images: List<Int>) : RecyclerView.Adapter<FullScreenAdapter.ViewHolder>() {
+    class FullScreenAdapter(private val images: List<String>) : RecyclerView.Adapter<FullScreenAdapter.ViewHolder>() {
         class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val ivFullImage: ImageView = view.findViewById(R.id.ivFullImage)
         }

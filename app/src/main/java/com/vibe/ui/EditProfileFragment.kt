@@ -18,16 +18,21 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
 import com.vibe.R
+import com.bumptech.glide.Glide
 import com.vibe.api.ApiClient
+import com.vibe.api.ProfileResponse
+import com.vibe.api.VibeApiService
+import com.vibe.api.ProfileUpdate
+import com.vibe.api.SessionManager
 import kotlinx.coroutines.*
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import retrofit2.awaitResponse
-
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import com.vibe.util.FileUtil
-import com.vibe.api.ProfileUpdate
-import com.vibe.api.SessionManager
 import com.vibe.util.UsernameGenerator
 import gun0912.tedimagepicker.builder.TedImagePicker
 
@@ -45,8 +50,7 @@ class EditProfileFragment : Fragment() {
     private lateinit var btnEditCover: ImageView
     private lateinit var btnEditProfilePic: ImageView
 
-    private val galleryList = mutableListOf<Uri>() // Storing Uris for display
-    private val galleryUrls = mutableListOf<String>() // Storing URLs for save
+    private val galleryList = mutableListOf<String>() // Store URLs/Paths for display
     private lateinit var galleryAdapter: GalleryAdapter
     
     private var profileUrl: String? = null
@@ -56,13 +60,12 @@ class EditProfileFragment : Fragment() {
     private fun openImagePicker() {
         TedImagePicker.with(requireContext())
             .start { uri ->
-                // Show immediately
+                // Show immediately for profile/cover
                 when (selectedImageType) {
-                    "profile" -> ivProfile.setImageURI(uri)
-                    "cover" -> ivCover.setImageURI(uri)
+                    "profile" -> Glide.with(this).load(uri).into(ivProfile)
+                    "cover" -> Glide.with(this).load(uri).into(ivCover)
                     "gallery" -> {
-                        galleryList.add(uri)
-                        galleryAdapter.notifyItemInserted(galleryList.size - 1)
+                        // Gallery will be updated after upload to get the URL
                     }
                 }
                 
@@ -71,7 +74,10 @@ class EditProfileFragment : Fragment() {
                      when (selectedImageType) {
                         "profile" -> profileUrl = url
                         "cover" -> coverUrl = url
-                        "gallery" -> galleryUrls.add(url)
+                        "gallery" -> {
+                            galleryList.add(url)
+                            galleryAdapter.notifyItemInserted(galleryList.size - 1)
+                        }
                     }
                 }
             }
@@ -128,9 +134,16 @@ class EditProfileFragment : Fragment() {
         AlertDialog.Builder(requireContext())
             .setTitle("Image Options")
             .setItems(options) { _, which ->
+                val imageUrl = galleryList[position]
                 when (which) {
-                    0 -> ivProfile.setImageURI(galleryList[position])
-                    1 -> ivCover.setImageURI(galleryList[position])
+                    0 -> {
+                        profileUrl = imageUrl
+                        Glide.with(this).load(imageUrl).into(ivProfile)
+                    }
+                    1 -> {
+                        coverUrl = imageUrl
+                        Glide.with(this).load(imageUrl).into(ivCover)
+                    }
                     2 -> {
                         galleryList.removeAt(position)
                         galleryAdapter.notifyItemRemoved(position)
@@ -244,7 +257,28 @@ class EditProfileFragment : Fragment() {
                     withContext(Dispatchers.Main) {
                         etName.setText(p.name)
                         etBio.setText(p.bio)
-                        // etUsername.setText(p.username) // ProfileResponse needs update or separate call
+                        etUsername.setText(p.uid) // Or p.username if added to ProfileResponse
+                        
+                        profileUrl = p.avatar
+                        coverUrl = p.cover
+                        
+                        Glide.with(this@EditProfileFragment)
+                            .load(p.avatar)
+                            .placeholder(R.drawable.ic_profile)
+                            .error(R.drawable.ic_profile)
+                            .into(ivProfile)
+                            
+                        Glide.with(this@EditProfileFragment)
+                            .load(p.cover)
+                            .placeholder(R.drawable.ic_profile)
+                            .error(R.drawable.ic_profile)
+                            .into(ivCover)
+                            
+                        p.gallery?.let {
+                            galleryList.clear()
+                            galleryList.addAll(it)
+                            galleryAdapter.notifyDataSetChanged()
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -276,7 +310,7 @@ class EditProfileFragment : Fragment() {
                         bio = bio,
                         avatar = profileUrl,
                         cover = coverUrl,
-                        gallery = galleryUrls,
+                        gallery = galleryList,
                         username = username
                     )
                 ).execute()
@@ -302,7 +336,7 @@ class EditProfileFragment : Fragment() {
     }
 
     class GalleryAdapter(
-        private val images: List<Uri>,
+        private val images: List<String>,
         private val onDelete: (Int) -> Unit,
         private val onClick: (Int) -> Unit
     ) : RecyclerView.Adapter<GalleryAdapter.VH>() {
@@ -318,7 +352,10 @@ class EditProfileFragment : Fragment() {
         }
 
         override fun onBindViewHolder(holder: VH, position: Int) {
-            holder.img.setImageURI(images[position])
+            Glide.with(holder.itemView.context)
+                .load(images[position])
+                .centerCrop()
+                .into(holder.img)
             holder.btnDelete.setOnClickListener { onDelete(position) }
             holder.itemView.setOnClickListener { onClick(position) }
         }

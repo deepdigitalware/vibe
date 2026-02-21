@@ -102,19 +102,17 @@ class CallActivity : AppCompatActivity() {
     }
 
     private fun loadProfileImages() {
-        remoteUserImage?.let { url ->
-            com.bumptech.glide.Glide.with(this)
-                .load(url)
-                .placeholder(R.drawable.ic_profile)
-                .error(R.drawable.ic_profile)
-                .into(ivRemoteAvatar)
+        com.bumptech.glide.Glide.with(this)
+            .load(remoteUserImage)
+            .placeholder(R.drawable.ic_profile)
+            .error(R.drawable.ic_profile)
+            .into(ivRemoteAvatar)
 
-            com.bumptech.glide.Glide.with(this)
-                .load(url)
-                .placeholder(R.drawable.ic_profile)
-                .error(R.drawable.ic_profile)
-                .into(ivRingingBackground)
-        }
+        com.bumptech.glide.Glide.with(this)
+            .load(remoteUserImage)
+            .placeholder(R.drawable.ic_profile)
+            .error(R.drawable.ic_profile)
+            .into(ivRingingBackground)
     }
 
     private fun setupRingingUI() {

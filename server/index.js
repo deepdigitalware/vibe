@@ -171,7 +171,7 @@ app.post('/login', (req, res) => {
 
 // App Login (Firebase Bridge)
 app.post('/api/auth/login-app', async (req, res) => {
-    const { uid, phone, email } = req.body;
+    const { uid, phone, email, deviceId, username: suggestedUsername, name: googleName, avatar: googleAvatar, fcmToken } = req.body;
     if (!uid) return res.status(400).json({ error: 'Missing UID' });
 
     try {
@@ -179,26 +179,54 @@ app.post('/api/auth/login-app', async (req, res) => {
         let user = result.rows[0];
 
         if (!user) {
+            // Check if device already claimed bonus
+            let bonusAmount = 0;
+            let claimed = false;
+            
+            if (deviceId) {
+                const deviceCheck = await db.query(
+                    'SELECT COUNT(*) FROM users WHERE device_id = $1 AND welcome_bonus_claimed = true',
+                    [deviceId]
+                );
+                if (parseInt(deviceCheck.rows[0].count) === 0) {
+                    bonusAmount = 50.00; // Welcome Bonus: 50 Coins
+                    claimed = true;
+                }
+            }
+
             // Create user
             const newUser = {
                 uid,
                 phone: phone || '',
                 email: email || '',
-                balance: 0,
+                balance: bonusAmount,
                 created_at: Date.now(),
-                username: `user_${uid.substring(0, 6)}`,
-                name: 'New User',
+                username: suggestedUsername || `user_${uid.substring(0, 6)}`,
+                name: googleName || 'New User',
                 bio: 'Hey there! I am using Vibe.',
-                role: 'user'
+                avatar: googleAvatar || null,
+                role: 'user',
+                device_id: deviceId || null,
+                welcome_bonus_claimed: claimed,
+                fcm_token: fcmToken || null
             };
             
             await db.query(
-                'INSERT INTO users (uid, phone, email, balance, created_at, username, name, bio, role) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-                [newUser.uid, newUser.phone, newUser.email, newUser.balance, newUser.created_at, newUser.username, newUser.name, newUser.bio, newUser.role]
+                'INSERT INTO users (uid, phone, email, balance, created_at, username, name, bio, avatar, role, device_id, welcome_bonus_claimed, fcm_token) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
+                [newUser.uid, newUser.phone, newUser.email, newUser.balance, newUser.created_at, newUser.username, newUser.name, newUser.bio, newUser.avatar, newUser.role, newUser.device_id, newUser.welcome_bonus_claimed, newUser.fcm_token]
             );
             user = newUser;
             io.emit('admin_update', { type: 'user_created', user });
         } else {
+            // Update device ID or FCM token if changed
+            if (deviceId && deviceId !== user.device_id) {
+                await db.query('UPDATE users SET device_id = $1 WHERE uid = $2', [deviceId, uid]);
+                user.device_id = deviceId;
+            }
+            if (fcmToken && fcmToken !== user.fcm_token) {
+                await db.query('UPDATE users SET fcm_token = $1 WHERE uid = $2', [fcmToken, uid]);
+                user.fcm_token = fcmToken;
+            }
              io.emit('admin_update', { type: 'user_online', userId: uid });
         }
 
@@ -207,6 +235,93 @@ app.post('/api/auth/login-app', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// Get Discovery Users
+app.get('/api/users', async (req, res) => {
+    const { userId } = req.query; // current user to check favourites
+    try {
+        let query = 'SELECT uid, name, username, bio, avatar, gallery, created_at, role, is_banned, balance, earned_cash, device_id, welcome_bonus_claimed FROM users WHERE role = \'user\'';
+        const params = [];
+        
+        if (userId) {
+            query = `
+                SELECT u.*, 
+                CASE WHEN f.favourite_id IS NOT NULL THEN true ELSE false END as is_favourited
+                FROM users u
+                LEFT JOIN favourites f ON u.uid = f.favourite_id AND f.user_id = $1
+                WHERE u.role = 'user' AND u.uid != $1
+            `;
+            params.push(userId);
+        }
+
+        const result = await db.query(query, params);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get User Detail
+app.get('/api/users/:uid', async (req, res) => {
+    const { uid } = req.params;
+    const { currentUserId } = req.query;
+    try {
+        let query = 'SELECT * FROM users WHERE uid = $1';
+        let params = [uid];
+
+        if (currentUserId) {
+            query = `
+                SELECT u.*, 
+                CASE WHEN f.favourite_id IS NOT NULL THEN true ELSE false END as is_favourited
+                FROM users u
+                LEFT JOIN favourites f ON u.uid = f.favourite_id AND f.user_id = $2
+                WHERE u.uid = $1
+            `;
+            params = [uid, currentUserId];
+        }
+
+        const result = await db.query(query, params);
+        if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Toggle Favourite
+app.post('/api/favourites/toggle', async (req, res) => {
+    const { userId, favouriteId } = req.body;
+    if (!userId || !favouriteId) return res.status(400).json({ error: 'Missing IDs' });
+
+    try {
+        const check = await db.query('SELECT * FROM favourites WHERE user_id = $1 AND favourite_id = $2', [userId, favouriteId]);
+        if (check.rows.length > 0) {
+            await db.query('DELETE FROM favourites WHERE user_id = $1 AND favourite_id = $2', [userId, favouriteId]);
+            res.json({ success: true, action: 'removed' });
+        } else {
+            await db.query('INSERT INTO favourites (user_id, favourite_id, created_at) VALUES ($1, $2, $3)', [userId, favouriteId, Date.now()]);
+            res.json({ success: true, action: 'added' });
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get Favourites
+app.get('/api/favourites/:userId', async (req, res) => {
+    const { userId } = req.params;
+    try {
+        const result = await db.query(`
+            SELECT u.*, true as is_favourited
+            FROM users u
+            JOIN favourites f ON u.uid = f.favourite_id
+            WHERE f.user_id = $1
+        `, [userId]);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 

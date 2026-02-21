@@ -120,13 +120,17 @@ class ChatDetailFragment : Fragment() {
     private val userId by lazy { FirebaseAuth.getInstance().currentUser?.uid ?: "guest" }
 
     // Args
+    private var chatUserId: String = ""
     private var chatName: String = "User"
     private var chatStatus: String = "Online"
+    private var chatAvatar: String? = null
 
     companion object {
-        fun newInstance(name: String, status: String = "Online") = ChatDetailFragment().apply {
+        fun newInstance(userId: String, name: String, avatar: String? = null, status: String = "Online") = ChatDetailFragment().apply {
             arguments = Bundle().apply {
+                putString("arg_userId", userId)
                 putString("arg_name", name)
+                putString("arg_avatar", avatar)
                 putString("arg_status", status)
             }
         }
@@ -135,7 +139,9 @@ class ChatDetailFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
+            chatUserId = it.getString("arg_userId", "")
             chatName = it.getString("arg_name", "User")
+            chatAvatar = it.getString("arg_avatar", null)
             chatStatus = it.getString("arg_status", "Online")
         }
     }
@@ -194,10 +200,15 @@ class ChatDetailFragment : Fragment() {
         tvHeaderName.text = chatName
         tvHeaderStatus.text = chatStatus
         
+        Glide.with(this)
+            .load(chatAvatar)
+            .placeholder(R.drawable.ic_profile)
+            .error(R.drawable.ic_profile)
+            .into(ivHeaderAvatar)
+
         val openProfile = View.OnClickListener {
-            // Open Profile Detail
             val fragment = ProfileDetailFragment.newInstance(
-                chatName, 25, "Unknown", "Bio loading...", "US", true, "City", "Country"
+                chatUserId, chatName, 25, "Bio loading...", "US", true, "City", "Country"
             )
             parentFragmentManager.beginTransaction()
                 .replace(R.id.fragmentContainer, fragment)

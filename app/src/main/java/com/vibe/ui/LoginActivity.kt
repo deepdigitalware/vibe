@@ -29,17 +29,18 @@ import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
 import com.hbb20.CountryCodePicker
+import com.google.firebase.messaging.FirebaseMessaging
+import com.vibe.api.ApiClient
+import com.vibe.api.LoginAppRequest
+import com.vibe.api.SessionManager
+import java.util.concurrent.TimeUnit
+
 import com.vibe.R
 import com.vibe.branding.BrandingManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.concurrent.TimeUnit
-
-import com.vibe.api.ApiClient
-import com.vibe.api.LoginAppRequest
-import com.vibe.api.SessionManager
-import retrofit2.awaitResponse
+import kotlinx.coroutines.tasks.await
 
 import android.media.MediaPlayer
 import android.net.Uri
@@ -81,6 +82,19 @@ class LoginActivity : AppCompatActivity() {
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             try {
                 val account = task.getResult(ApiException::class.java)
+                
+                // Pre-save Google info for later registration if needed
+                val googleName = account.displayName
+                val googlePhoto = account.photoUrl?.toString()
+                val googleEmail = account.email
+                
+                // Save to shared prefs to use in onLoginSuccess
+                getSharedPreferences("vibe_prefs", Context.MODE_PRIVATE).edit()
+                    .putString("temp_google_name", googleName)
+                    .putString("temp_google_photo", googlePhoto)
+                    .putString("temp_google_email", googleEmail)
+                    .apply()
+
                 firebaseAuthWithGoogle(account.idToken!!)
             } catch (e: ApiException) {
                 val errorMsg = when (e.statusCode) {
@@ -115,17 +129,19 @@ class LoginActivity : AppCompatActivity() {
             showSnackbar("Firebase Auth not available. Check google-services.json")
         }
 
-        // Configure Google Sign-In
+        setupGoogleSignIn()
+        initViews()
+        setupListeners()
+        loadAds()
+        applyDynamicBranding()
+    }
+
+    private fun setupGoogleSignIn() {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
             .build()
         googleSignInClient = GoogleSignIn.getClient(this, gso)
-
-        initViews()
-        setupListeners()
-        loadAds()
-        applyDynamicBranding()
     }
 
     private fun initViews() {
@@ -201,30 +217,18 @@ class LoginActivity : AppCompatActivity() {
 
     private fun setupBackgroundVideo(videoUrl: String? = null) {
         try {
-            if (videoUrl != null) {
-                videoBackground.setVideoURI(Uri.parse(videoUrl))
+            val videoUri = if (!videoUrl.isNullOrBlank()) {
+                Uri.parse(videoUrl)
             } else {
-                // Try to load from assets first
-                try {
-                    val descriptor = assets.openFd("background.mp4")
-                    videoBackground.setVideoURI(Uri.parse("android.resource://" + packageName + "/" + R.raw.login_bg)) // Fallback if needed
-                    // For VideoView/ScalableVideoView, using a raw resource is more reliable than assets for MP4
-                    // But user explicitly asked for the assets path.
-                    // We'll use the assets path directly if possible or the raw resource if it matches.
-                } catch (e: Exception) {
-                    videoBackground.setVideoURI(Uri.parse("android.resource://" + packageName + "/" + R.raw.login_bg))
-                }
+                Uri.parse("android.resource://$packageName/${R.raw.login_bg}")
             }
-            
-            // Overriding with specific user requested asset path logic
-            val assetUri = Uri.parse("file:///android_asset/background.mp4")
-            videoBackground.setVideoPath("file:///android_asset/background.mp4")
-            
+
+            videoBackground.setVideoURI(videoUri)
             videoBackground.setOnPreparedListener { mp ->
                 mp.isLooping = true
                 mp.setVolume(0f, 0f)
-                // ScalableVideoView handles the fit/fill automatically in onMeasure
                 videoBackground.setVideoSize(mp.videoWidth, mp.videoHeight)
+                videoBackground.start()
             }
             videoBackground.setOnInfoListener { mp, what, extra ->
                 if (what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
@@ -232,9 +236,12 @@ class LoginActivity : AppCompatActivity() {
                 }
                 false
             }
-            videoBackground.start()
+            videoBackground.setOnErrorListener { _, what, extra ->
+                Log.e(TAG, "VideoView Error: what=$what, extra=$extra")
+                true // handle error
+            }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Error setting up background video", e)
         }
     }
 
@@ -291,8 +298,10 @@ class LoginActivity : AppCompatActivity() {
 
     private fun setupListeners() {
         btnGoogleLogin.setOnClickListener {
-            val signInIntent = googleSignInClient.signInIntent
-            googleSignInLauncher.launch(signInIntent)
+            googleSignInClient.signOut().addOnCompleteListener {
+                val signInIntent = googleSignInClient.signInIntent
+                googleSignInLauncher.launch(signInIntent)
+            }
         }
 
         btnCancelOtp.setOnClickListener {
@@ -417,6 +426,17 @@ class LoginActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
+                val fcmToken = try {
+                    FirebaseMessaging.getInstance().token.await()
+                } catch (e: Exception) {
+                    null
+                }
+                
+                val sharedPrefs = getSharedPreferences("vibe_prefs", Context.MODE_PRIVATE)
+                val googleName = sharedPrefs.getString("temp_google_name", null)
+                val googlePhoto = sharedPrefs.getString("temp_google_photo", null)
+                val googleEmail = sharedPrefs.getString("temp_google_email", null)
+
                 val deviceId = android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ANDROID_ID)
                 val response = withContext(Dispatchers.IO) {
                     val randomUsername = com.vibe.util.UsernameGenerator.generate()
@@ -424,9 +444,12 @@ class LoginActivity : AppCompatActivity() {
                         LoginAppRequest(
                             uid = user.uid,
                             phone = user.phoneNumber,
-                            email = user.email,
+                            email = user.email ?: googleEmail,
                             username = randomUsername,
-                            deviceId = deviceId
+                            name = googleName ?: "Vibe User",
+                            avatar = googlePhoto,
+                            deviceId = deviceId,
+                            fcmToken = fcmToken
                         )
                     ).execute()
                 }
@@ -434,7 +457,7 @@ class LoginActivity : AppCompatActivity() {
                 if (response.isSuccessful && response.body() != null) {
                     val body = response.body()!!
                     SessionManager.saveToken(body.token)
-                    body.user?.id?.let { SessionManager.saveUserId(it) }
+                    body.user?.uid?.let { SessionManager.saveUserId(it) }
                     
                     withContext(Dispatchers.Main) {
                         // showSnackbar("Connected!")

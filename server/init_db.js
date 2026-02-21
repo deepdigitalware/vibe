@@ -11,15 +11,19 @@ async function initDb(retries = 5) {
             
             // Seed initial users if table is empty
             const userCount = await db.query('SELECT COUNT(*) FROM users');
-            if (parseInt(userCount.rows[0].count) === 0) {
+            if (parseInt(userCount.rows[0].count) <= 1) { // Seed if only admin or empty
                 console.log('Seeding initial users...');
                 const usersData = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'users.json'), 'utf-8'));
                 for (const uid in usersData) {
                     const user = usersData[uid];
-                    await db.query(
-                        'INSERT INTO users (uid, name, username, bio, avatar, balance, created_at, role) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-                        [uid, user.name, user.username, user.bio, user.avatar, user.balance || 0, Date.now(), 'user']
-                    );
+                    // Check if already exists to avoid duplicates
+                    const check = await db.query('SELECT 1 FROM users WHERE uid = $1', [uid]);
+                    if (check.rows.length === 0) {
+                        await db.query(
+                            'INSERT INTO users (uid, name, username, bio, avatar, balance, created_at, role) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+                            [uid, user.name, user.username, user.bio, user.avatar, user.balance || 0, Date.now(), 'user']
+                        );
+                    }
                 }
                 console.log('Users seeded successfully');
             }

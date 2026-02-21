@@ -81,17 +81,18 @@
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="56dp"
+                    android:layout_height="50dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
                     android:background="@drawable/bg_input_outline"
                     android:paddingStart="8dp"
-                    android:paddingEnd="16dp">
+                    android:paddingEnd="12dp">
 
                     <com.hbb20.CountryCodePicker
                         android:id="@+id/ccp"
                         android:layout_width="wrap_content"
-                        android:layout_height="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
                         app:ccp_defaultNameCode="IN"
                         app:ccp_textSize="16sp"
                         app:ccp_contentColor="@android:color/white"
@@ -99,31 +100,40 @@
                         app:ccp_showArrow="true"
                         app:ccp_padding="0dp" />
 
+                    <View
+                        android:layout_width="1dp"
+                        android:layout_height="20dp"
+                        android:background="#40FFFFFF"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginEnd="8dp"/>
+
                     <EditText
                         android:id="@+id/etPhone"
-                        android:layout_width="match_parent"
+                        android:layout_width="0dp"
                         android:layout_height="match_parent"
+                        android:layout_weight="1"
                         android:background="@android:color/transparent"
                         android:hint="Phone Number"
                         android:textColorHint="#80FFFFFF"
                         android:textColor="@android:color/white"
                         android:inputType="phone"
                         android:textSize="16sp"
-                        android:paddingStart="4dp"
-                        android:paddingEnd="8dp"
+                        android:paddingStart="0dp"
+                        android:paddingEnd="0dp"
+                        android:textCursorDrawable="@null"
                         android:gravity="center_vertical" />
                 </LinearLayout>
 
                 <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/btnSendOtp"
                     android:layout_width="match_parent"
-                    android:layout_height="56dp"
+                    android:layout_height="48dp"
                     android:layout_marginTop="12dp"
                     android:background="@drawable/btn_solid_purple"
                     android:text="Send OTP"
                     android:textColor="@android:color/white"
                     android:textAllCaps="false"
-                    android:textSize="16sp"
+                    android:textSize="14sp"
                     android:textStyle="bold"/>
             </LinearLayout>
 
@@ -138,7 +148,7 @@
             <com.google.android.gms.common.SignInButton
                 android:id="@+id/btnGoogleLogin"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
+                android:layout_height="48dp"
                 app:buttonSize="wide"
                 app:colorScheme="light" />
 

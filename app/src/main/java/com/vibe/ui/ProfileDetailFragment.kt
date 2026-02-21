@@ -20,10 +20,19 @@ import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.google.android.gms.ads.AdView
 import com.vibe.R
+import com.vibe.api.ApiClient
+import com.vibe.api.ToggleFavouriteRequest
+import com.vibe.api.ToggleFavouriteResponse
+import com.vibe.api.ProfileResponse
+import com.vibe.api.SessionManager
 import com.vibe.utils.showSnackbar
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class ProfileDetailFragment : Fragment() {
 
+    private var userId: String = ""
     private var name: String = "Unknown"
     private var age: Int = 20
     private var distance: String = "Unknown"
@@ -32,10 +41,16 @@ class ProfileDetailFragment : Fragment() {
     private var country: String = "Unknown"
     private var countryCode: String = "US"
     private var isOnline: Boolean = false
+    private var isFavourited: Boolean = false
+    private var avatar: String? = null
+    private var cover: String? = null
+    private var gallery: List<String> = emptyList()
+
     private var mInterstitialAd: InterstitialAd? = null
     private val TAG = "ProfileDetailFragment"
 
     companion object {
+        private const val ARG_USER_ID = "user_id"
         private const val ARG_NAME = "name"
         private const val ARG_AGE = "age"
         private const val ARG_DISTANCE = "distance"
@@ -45,12 +60,12 @@ class ProfileDetailFragment : Fragment() {
         private const val ARG_COUNTRY = "country"
         private const val ARG_ONLINE = "online"
 
-        fun newInstance(name: String, age: Int, distance: String, bio: String, countryCode: String = "US", isOnline: Boolean = false, city: String = "New York", country: String = "USA") =
+        fun newInstance(userId: String, name: String, age: Int, bio: String, countryCode: String = "US", isOnline: Boolean = false, city: String = "New York", country: String = "USA") =
             ProfileDetailFragment().apply {
                 arguments = Bundle().apply {
+                    putString(ARG_USER_ID, userId)
                     putString(ARG_NAME, name)
                     putInt(ARG_AGE, age)
-                    putString(ARG_DISTANCE, distance)
                     putString(ARG_BIO, bio)
                     putString(ARG_COUNTRY_CODE, countryCode)
                     putBoolean(ARG_ONLINE, isOnline)
@@ -73,6 +88,7 @@ class ProfileDetailFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
+            userId = it.getString(ARG_USER_ID, "")
             name = it.getString(ARG_NAME, "Unknown")
             age = it.getInt(ARG_AGE, 20)
             distance = it.getString(ARG_DISTANCE, "Unknown")
@@ -163,108 +179,140 @@ class ProfileDetailFragment : Fragment() {
         tvName.text = "$name, $age"
         tvDetail.text = "$city, $country"
         tvAbout.text = bio.ifEmpty { "No bio available." }
-        
-        // Set flag
         tvFlag.text = getFlagEmoji(countryCode)
-        
-        // Set Online Status
         ivOnlineStatus.visibility = if (isOnline) View.VISIBLE else View.GONE
-        
-        // Load Profile Image with Palette for Adaptive Color
-        val profileResId = R.drawable.ic_profile // Default
-        
-        // Use Glide to load and generate Palette
-        com.bumptech.glide.Glide.with(this)
-            .asBitmap()
-            .load(profileResId) 
-            .into(object : com.bumptech.glide.request.target.CustomTarget<android.graphics.Bitmap>() {
-                override fun onResourceReady(resource: android.graphics.Bitmap, transition: com.bumptech.glide.request.transition.Transition<in android.graphics.Bitmap>?) {
-                    ivCoverImage.setImageBitmap(resource)
-                    ivProfileAvatar.setImageBitmap(resource)
-                    /* androidx.palette.graphics.Palette.from(resource).generate { palette ->
-                        val vibrant = palette?.vibrantSwatch
-                        val dominant = palette?.dominantSwatch
-                        val color = vibrant?.rgb ?: dominant?.rgb ?: Color.DKGRAY
-                        
-                        viewAdaptiveBar.setBackgroundColor(color)
-                    } */
-                }
-                override fun onLoadCleared(placeholder: android.graphics.drawable.Drawable?) {}
-            })
-            
-        // Like Button Logic
-        var isMatchSent = false
-        btnLike.setOnClickListener {
-            if (isMatchSent) {
-                isMatchSent = false
-                btnLike.setImageResource(R.drawable.ic_heart_outline)
-                btnLike.setColorFilter(Color.WHITE)
-                view.showSnackbar("Match Request Cancelled")
-            } else {
-                isMatchSent = true
-                btnLike.setImageResource(R.drawable.ic_heart_filled)
-                btnLike.setColorFilter(Color.RED)
-                view.showSnackbar("Match Request Sent")
-            }
-        }
 
-        // Setup Photo Adapter
-        val dummyPhotos = listOf(
-            R.drawable.ic_profile,
-            R.drawable.ic_profile,
-            R.drawable.ic_profile
-        )
-        val photoAdapter = PhotoAdapter(dummyPhotos) { position ->
-            // Open Full Screen Image
-            // We can pass the list and position
-            val intent = android.content.Intent(context, FullScreenImageActivity::class.java)
-            intent.putExtra("images", ArrayList(dummyPhotos)) // Passing resource IDs for now
-            intent.putExtra("position", position)
-            startActivity(intent)
+        loadProfileData(view)
+
+        btnLike.setOnClickListener {
+            toggleFavourite(btnLike)
         }
-        rvPhotos.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
-        rvPhotos.addItemDecoration(HorizontalMarginItemDecoration(8))
-        rvPhotos.adapter = photoAdapter
 
         btnClose.setOnClickListener {
             parentFragmentManager.popBackStack()
         }
 
         btnVideoCall.setOnClickListener {
-            // Start video call logic (deduct money)
             val intent = CallActivity.newIntent(
                 requireContext(), 
                 role = "caller", 
                 roomId = "Room_${name.replace(" ", "_")}",
                 userName = name,
-                userImage = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" // Placeholder for now
+                userImage = avatar ?: ""
             )
             startActivity(intent)
         }
 
         btnChat.setOnClickListener {
-            view.showSnackbar("Opening chat with $name...")
-            
             if (mInterstitialAd != null) {
                 mInterstitialAd?.show(requireActivity())
             } else {
-                Log.d(TAG, "The interstitial ad wasn't ready yet.")
                 navigateToChat()
             }
         }
 
-        // Load Banners
-        val adViewSmart = view.findViewById<AdView>(R.id.adViewSmart)
-        val adViewLarge = view.findViewById<AdView>(R.id.adViewLarge)
-        val bannerRequest = AdRequest.Builder().build()
-        adViewSmart.loadAd(bannerRequest)
-        adViewLarge.loadAd(bannerRequest)
-        
         return view
+    }
+
+    private fun loadProfileData(view: View) {
+        val currentUserId = SessionManager.getUserId()
+        ApiClient.api.getProfile(userId, currentUserId).enqueue(object : Callback<ProfileResponse> {
+            override fun onResponse(call: Call<ProfileResponse>, response: Response<ProfileResponse>) {
+                if (response.isSuccessful) {
+                    val profile = response.body() ?: return
+                    name = profile.name
+                    bio = profile.bio
+                    avatar = profile.avatar
+                    cover = profile.cover
+                    gallery = profile.gallery ?: emptyList()
+                    isFavourited = profile.is_favourited
+
+                    updateUI(view)
+                }
+            }
+            override fun onFailure(call: Call<ProfileResponse>, t: Throwable) {
+                view.showSnackbar("Failed to load profile details")
+            }
+        })
+    }
+
+    private fun updateUI(view: View) {
+        val tvName = view.findViewById<TextView>(R.id.tvName)
+        val tvAbout = view.findViewById<TextView>(R.id.tvAbout)
+        val ivCoverImage = view.findViewById<ImageView>(R.id.ivCoverImage)
+        val ivProfileAvatar = view.findViewById<ImageView>(R.id.ivProfileAvatar)
+        val btnLike = view.findViewById<android.widget.ImageButton>(R.id.btnLike)
+        val rvPhotos = view.findViewById<RecyclerView>(R.id.rvPhotos)
+
+        tvName.text = "$name, $age"
+        tvAbout.text = bio.ifEmpty { "No bio available." }
+
+        if (isFavourited) {
+            btnLike.setImageResource(R.drawable.ic_heart_filled)
+            btnLike.setColorFilter(Color.RED)
+        } else {
+            btnLike.setImageResource(R.drawable.ic_heart_outline)
+            btnLike.setColorFilter(Color.WHITE)
+        }
+
+        com.bumptech.glide.Glide.with(this)
+            .load(cover)
+            .placeholder(R.drawable.ic_profile)
+            .error(R.drawable.ic_profile)
+            .into(ivCoverImage)
+
+        com.bumptech.glide.Glide.with(this)
+            .load(avatar)
+            .placeholder(R.drawable.ic_profile)
+            .error(R.drawable.ic_profile)
+            .into(ivProfileAvatar)
+
+        val tvNoPhotos = view.findViewById<TextView>(R.id.tvNoPhotos)
+        
+        if (gallery.isEmpty()) {
+            tvNoPhotos.visibility = View.VISIBLE
+            rvPhotos.visibility = View.GONE
+        } else {
+            tvNoPhotos.visibility = View.GONE
+            rvPhotos.visibility = View.VISIBLE
+        }
+
+        val photoAdapter = PhotoAdapter(gallery) { position ->
+            val intent = android.content.Intent(context, FullScreenImageActivity::class.java)
+            intent.putStringArrayListExtra("images", ArrayList(gallery))
+            intent.putExtra("position", position)
+            startActivity(intent)
+        }
+        rvPhotos.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+        rvPhotos.adapter = photoAdapter
+    }
+
+    private fun toggleFavourite(btnLike: android.widget.ImageButton) {
+        val currentUserId = SessionManager.getUserId() ?: return
+        ApiClient.api.toggleFavourite(ToggleFavouriteRequest(currentUserId, userId))
+            .enqueue(object : Callback<ToggleFavouriteResponse> {
+                override fun onResponse(call: Call<ToggleFavouriteResponse>, response: Response<ToggleFavouriteResponse>) {
+                    if (response.isSuccessful) {
+                        isFavourited = response.body()?.action == "added"
+                        if (isFavourited) {
+                            btnLike.setImageResource(R.drawable.ic_heart_filled)
+                            btnLike.setColorFilter(Color.RED)
+                            view?.showSnackbar("Added to Favourites")
+                        } else {
+                            btnLike.setImageResource(R.drawable.ic_heart_outline)
+                            btnLike.setColorFilter(Color.WHITE)
+                            view?.showSnackbar("Removed from Favourites")
+                        }
+                    }
+                }
+                override fun onFailure(call: Call<ToggleFavouriteResponse>, t: Throwable) {
+                    view?.showSnackbar("Failed to update favourite")
+                }
+            })
     }
     
     
-    class PhotoAdapter(private val photos: List<Int>, private val onClick: (Int) -> Unit) : RecyclerView.Adapter<PhotoAdapter.ViewHolder>() {
+    class PhotoAdapter(private val photos: List<String>, private val onClick: (Int) -> Unit) : RecyclerView.Adapter<PhotoAdapter.ViewHolder>() {
         class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val imageView: android.widget.ImageView = view.findViewById(R.id.ivImage)
         }
@@ -276,7 +324,10 @@ class ProfileDetailFragment : Fragment() {
         }
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            holder.imageView.setImageResource(photos[position])
+            com.bumptech.glide.Glide.with(holder.itemView.context)
+                .load(photos[position])
+                .centerCrop()
+                .into(holder.imageView)
             holder.itemView.setOnClickListener { onClick(position) }
         }
 

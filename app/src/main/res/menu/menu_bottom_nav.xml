@@ -6,7 +6,7 @@
         android:icon="@drawable/ic_globe" />
     <item
         android:id="@+id/nav_matches"
-        android:title="Matches"
+        android:title="Favourite"
         android:icon="@drawable/ic_heart" />
     <item
         android:id="@+id/nav_messages"

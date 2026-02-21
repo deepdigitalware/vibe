@@ -24,16 +24,22 @@ data class ProfileUpdate(
     val gallery: List<String>? = null,
     val username: String? = null
 )
-data class ProfileResponse(val balance: Double, val name: String, val bio: String)
-data class User(val id: String, val name: String, val bio: String)
+data class ProfileResponse(val uid: String, val name: String, val bio: String, val avatar: String?, val cover: String?, val gallery: List<String>?, val balance: Double, val is_favourited: Boolean = false)
+data class User(val uid: String, val name: String, val bio: String, val avatar: String?, var is_favourited: Boolean = false)
 data class UsernameCheckResponse(val available: Boolean)
+
+data class ToggleFavouriteRequest(val userId: String, val favouriteId: String)
+data class ToggleFavouriteResponse(val success: Boolean, val action: String)
 
 data class LoginAppRequest(
     val uid: String, 
     val phone: String?, 
     val email: String?, 
     val username: String? = null,
-    val deviceId: String? = null
+    val name: String? = null,
+    val avatar: String? = null,
+    val deviceId: String? = null,
+    val fcmToken: String? = null
 )
 
 data class WithdrawalRequest(val userId: String, val amount: Double)
@@ -69,11 +75,17 @@ interface VibeApiService {
     @POST("/profile/update")
     fun updateProfile(@Body req: ProfileUpdate): Call<WalletActionResponse>
 
-    @GET("/profile/{userId}")
-    fun getProfile(@Path("userId") userId: String): Call<ProfileResponse>
+    @GET("/api/users/{uid}")
+    fun getProfile(@Path("uid") uid: String, @Query("currentUserId") currentUserId: String? = null): Call<ProfileResponse>
 
-    @GET("/discover/users")
-    fun discoverUsers(): Call<List<User>>
+    @GET("/api/users")
+    fun discoverUsers(@Query("userId") userId: String? = null): Call<List<User>>
+
+    @POST("/api/favourites/toggle")
+    fun toggleFavourite(@Body req: ToggleFavouriteRequest): Call<ToggleFavouriteResponse>
+
+    @GET("/api/favourites/{userId}")
+    fun getFavourites(@Path("userId") userId: String): Call<List<User>>
 
     @GET("/api/check-username")
     fun checkUsername(@Query("username") username: String): Call<UsernameCheckResponse>

@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
                 R.id.nav_matches -> {
-                    loadFragment(MatchesFragment())
+                    loadFragment(FavouriteFragment())
                     true
                 }
                 R.id.nav_messages -> {

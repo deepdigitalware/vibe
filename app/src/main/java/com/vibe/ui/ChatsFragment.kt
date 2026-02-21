@@ -35,19 +35,14 @@ class ChatsFragment : Fragment() {
         val name: String,
         val lastMessage: String,
         val time: String,
-        val avatarRes: Int,
+        val avatar: String?,
         val lastChatTime: Long, // For sorting
         val unreadCount: Int = 0,
         val isLastMessageSentByMe: Boolean = false,
         val messageStatus: Int = 0 // 0: Sending, 1: Sent, 2: Delivered, 3: Read
     )
 
-    private val chats = mutableListOf(
-        ChatSummary("1", "Katina", "Hey! How are you?", "10:30 AM", R.drawable.ic_profile, System.currentTimeMillis() - 3600000, 2),
-        ChatSummary("2", "Robert", "The dark theme looks cool.", "Yesterday", R.drawable.ic_profile, System.currentTimeMillis() - 86400000, 0, true, 3),
-        ChatSummary("3", "Alice", "Let's meet up later.", "Mon", R.drawable.ic_profile, System.currentTimeMillis() - 172800000, 5),
-        ChatSummary("4", "John", "Sent you the file.", "10:45 AM", R.drawable.ic_profile, System.currentTimeMillis() - 1800000, 0, true, 2)
-    )
+    private val chats = mutableListOf<ChatSummary>()
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_chats, container, false)
@@ -76,7 +71,7 @@ class ChatsFragment : Fragment() {
                 
                 // Navigate to ChatDetailFragment
                 parentFragmentManager.beginTransaction()
-                    .replace(R.id.fragmentContainer, ChatDetailFragment.newInstance(chat.name, "Online"))
+                    .replace(R.id.fragmentContainer, ChatDetailFragment.newInstance(chat.id, chat.name, chat.avatar, "Online"))
                     .addToBackStack(null)
                     .commit()
             }
@@ -141,7 +136,7 @@ class ChatsFragment : Fragment() {
                                 name = senderName,
                                 lastMessage = msg,
                                 time = "Now",
-                                avatarRes = R.drawable.ic_profile,
+                                avatar = null, // Will load from server next time
                                 lastChatTime = System.currentTimeMillis(),
                                 unreadCount = 1
                             )
@@ -193,7 +188,12 @@ class ChatsFragment : Fragment() {
             holder.tvName.text = item.name
             holder.tvLastMessage.text = item.lastMessage
             holder.tvTime.text = item.time
-            // holder.ivAvatar.setImageResource(item.avatarRes) // Use default for now or load image
+            
+            com.bumptech.glide.Glide.with(holder.itemView.context)
+                .load(item.avatar)
+                .placeholder(R.drawable.ic_profile)
+                .error(R.drawable.ic_profile)
+                .into(holder.ivAvatar)
             
             // Unread Count Logic
             if (item.unreadCount > 0) {
